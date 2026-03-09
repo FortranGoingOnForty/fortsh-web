@@ -1,0 +1,80 @@
+# Job Control
+
+Job control allows managing multiple processes from a single shell session.
+
+**Source:** `src/execution/jobs.f90`, `src/execution/builtins.f90`, `src/system/signal_handling.f90`
+
+## Overview
+
+fortsh provides full job control capabilities:
+
+- **[Background Jobs](/docs/job-control/background)** - Run processes in the background
+- **[Signals & Traps](/docs/job-control/signals)** - Handle and intercept signals
+
+## Quick Reference
+
+### Background Operations
+
+```bash
+command &           # Run in background
+jobs                # List jobs
+fg %n               # Bring job to foreground
+bg %n               # Resume job in background
+Ctrl+Z              # Suspend foreground job
+```
+
+### Job Specification
+
+| Syntax | Meaning |
+|--------|---------|
+| `%n` | Job number n |
+| `%%` or `%+` | Current job |
+| `%-` | Previous job |
+| `%?string` | Job containing string |
+
+### Signal Operations
+
+```bash
+kill %n             # Send SIGTERM to job
+kill -9 %n          # Send SIGKILL to job
+kill -l             # List signals
+trap 'cmd' SIGNAL   # Set signal handler
+```
+
+## Job States
+
+| State | Description |
+|-------|-------------|
+| Running | Actively executing |
+| Stopped | Suspended (Ctrl+Z or SIGTSTP) |
+| Done | Completed execution |
+
+## Common Patterns
+
+### Background Long Tasks
+
+```bash
+find / -name "*.log" > logs.txt &
+# Continue with other work...
+jobs
+fg %1              # Check on it when ready
+```
+
+### Suspend and Resume
+
+```bash
+vim file.txt
+# Press Ctrl+Z to suspend
+jobs               # [1]+ Stopped vim file.txt
+fg %1              # Resume editing
+```
+
+### Multiple Background Jobs
+
+```bash
+./download1.sh &
+./download2.sh &
+./download3.sh &
+jobs
+wait               # Wait for all to complete
+```

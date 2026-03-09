@@ -1,0 +1,254 @@
+# Background Jobs
+
+Run processes without blocking the terminal.
+
+**Source:** `src/execution/jobs.f90`, `src/execution/executor.f90:269-277`, `src/execution/builtins.f90:778-927`
+
+## Running in Background
+
+Append `&` to run a command in the background:
+
+```bash
+sleep 60 &
+# [1] 12345
+# Shell prompt returns immediately
+```
+
+The shell prints:
+- `[1]` - Job number
+- `12345` - Process ID
+
+## Listing Jobs
+
+Use `jobs` to list all jobs:
+
+```bash
+sleep 100 &
+sleep 200 &
+jobs
+# [1]-  Running                 sleep 100 &
+# [2]+  Running                 sleep 200 &
+```
+
+### Jobs Options
+
+```bash
+jobs         # List all jobs
+jobs -l      # Include PIDs
+jobs -p      # Show only PIDs
+```
+
+**Source:** builtins.f90:778-791
+
+## Job Specification
+
+Reference jobs by number or pattern:
+
+| Syntax | Meaning |
+|--------|---------|
+| `%1` | Job 1 |
+| `%2` | Job 2 |
+| `%%` | Current job (most recent) |
+| `%+` | Same as `%%` |
+| `%-` | Previous job |
+| `%?string` | Job whose command contains string |
+
+```bash
+vim file.txt &
+./longscript.sh &
+fg %vim            # Brings vim to foreground
+fg %?script        # Brings longscript to foreground
+```
+
+**Source:** builtins.f90:796-854
+
+## Foreground and Background
+
+### fg - Foreground
+
+Bring a job to the foreground:
+
+```bash
+./script.sh &
+# [1] 12345
+fg %1              # Bring to foreground
+# ./script.sh continues in foreground
+```
+
+Without arguments, `fg` uses the current job:
+
+```bash
+fg                 # Same as fg %%
+```
+
+**Source:** builtins.f90:856-890
+
+### bg - Background
+
+Resume a stopped job in the background:
+
+```bash
+vim file.txt
+# Press Ctrl+Z
+# [1]+  Stopped                 vim file.txt
+
+bg %1
+# [1]+ vim file.txt &
+```
+
+**Source:** builtins.f90:892-927
+
+## Suspending Jobs
+
+Press `Ctrl+Z` to suspend the foreground job:
+
+```bash
+sleep 1000
+# Press Ctrl+Z
+# [1]+  Stopped                 sleep 1000
+```
+
+The job receives `SIGTSTP` and stops. Use `fg` to resume in foreground or `bg` to resume in background.
+
+**Source:** jobs.f90:225-259 - `suspend_job()`
+
+## Waiting for Jobs
+
+### wait - Wait for Completion
+
+Wait for background jobs to finish:
+
+```bash
+# Wait for all background jobs
+./job1.sh &
+./job2.sh &
+wait
+echo "All done"
+
+# Wait for specific job
+./longrun.sh &
+wait %1
+echo "longrun finished with status $?"
+
+# Wait for specific PID
+./task.sh &
+pid=$!
+wait $pid
+```
+
+**Source:** builtins.f90:1286-1345
+
+### $! - Last Background PID
+
+```bash
+./background.sh &
+echo "Started PID $!"
+wait $!
+```
+
+## Job Completion Notification
+
+When a background job completes, fortsh notifies you at the next prompt:
+
+```bash
+sleep 5 &
+# [1] 12345
+# ... wait 5 seconds and press Enter ...
+# [1]+  Done                    sleep 5
+```
+
+**Source:** jobs.f90:94-112 - `notify_job_status()`
+
+## Process Groups
+
+Background jobs run in their own process group. This allows:
+- Sending signals to the entire job
+- Terminal control management
+- Job state tracking
+
+**Source:** executor.f90:147-159, jobs.f90:114-178
+
+## Job Table
+
+Jobs are tracked in `shell%jobs` array:
+
+```fortran
+type :: job_t
+  integer :: job_id
+  integer(c_pid_t) :: pgid
+  integer(c_pid_t), allocatable :: pids(:)
+  character(len=256) :: command_line
+  integer :: state          ! JOB_RUNNING, JOB_STOPPED, JOB_DONE
+  logical :: foreground
+end type
+```
+
+**Source:** types.f90:168-177
+
+## Killing Jobs
+
+Send signals to jobs:
+
+```bash
+sleep 1000 &
+kill %1              # SIGTERM (default)
+kill -KILL %1        # SIGKILL (force)
+kill -9 %1           # Same as above
+kill -STOP %1        # Suspend job
+kill -CONT %1        # Resume job
+```
+
+Negative PIDs target process groups:
+
+```bash
+kill -- -$pgid       # Kill entire process group
+```
+
+**Source:** builtins.f90:1139-1283
+
+## Common Patterns
+
+### Run and Detach
+
+```bash
+nohup ./server.sh > server.log 2>&1 &
+disown %1
+# Server continues even after logout
+```
+
+### Parallel Processing
+
+```bash
+for file in *.txt; do
+    process_file "$file" &
+done
+wait
+echo "All files processed"
+```
+
+### Background with Output
+
+```bash
+# Redirect output to avoid terminal clutter
+./noisy.sh > output.log 2>&1 &
+```
+
+### Check on Long Jobs
+
+```bash
+./compile.sh &
+pid=$!
+
+# Check periodically
+while kill -0 $pid 2>/dev/null; do
+    echo "Still running..."
+    sleep 10
+done
+echo "Done!"
+```
+
+## Limitations
+
+- Maximum jobs: Defined by `MAX_JOBS` constant
+- Job numbers are reused after completion
+- Pipelines run as a single job (all processes in same group)

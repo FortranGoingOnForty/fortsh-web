@@ -1,0 +1,154 @@
+# Known Limitations
+
+fortsh has some limitations compared to bash and other shells.
+
+## Platform Limitations
+
+### macOS Apple Silicon (M1/M2/M3)
+
+**Command line limit: 127 characters**
+
+Due to a bug in flang-new (the only working Fortran compiler on ARM64 macOS), string operations are limited to 128 bytes.
+
+Workarounds:
+- Use aliases for long commands
+- Use variables for long paths
+- Save complex one-liners as scripts
+
+See [macOS Apple Silicon](/docs/platform/macos-arm) for details.
+
+### macOS Intel
+
+No significant limitations. Full functionality available.
+
+### Linux
+
+No significant limitations. This is the primary development platform.
+
+## Feature Limitations
+
+### Nested Brace Expansion
+
+Complex nested brace expansions may not work:
+
+```bash
+# Works
+echo {a,b}{1,2}           # a1 a2 b1 b2
+
+# May not work
+echo {{a,b},{c,d}}        # Nested braces
+```
+
+### Vi Mode Gaps
+
+Vi editing mode is functional but incomplete compared to bash:
+
+- Some vi commands not implemented
+- Some movement commands may differ
+- Visual mode not supported
+
+### Arithmetic Precision
+
+Shell arithmetic uses Fortran integers:
+
+```bash
+echo $((2**62))           # Works
+echo $((2**63))           # May overflow
+```
+
+For arbitrary precision, use external tools like `bc`.
+
+### Process Substitution
+
+Process substitution is supported but may have edge cases:
+
+```bash
+diff <(cmd1) <(cmd2)      # Works
+```
+
+### Coprocess
+
+Coproc is not implemented:
+
+```bash
+coproc cmd                # Not supported
+```
+
+## Compatibility Notes
+
+### Bash Compatibility
+
+fortsh aims for ~99% bash compatibility. Known differences:
+
+| Feature | fortsh | bash |
+|---------|--------|------|
+| `[[` test | Supported | Supported |
+| Arrays | Supported | Supported |
+| Associative arrays | 50 entry limit | Unlimited |
+| Brace expansion | Basic | Full nested |
+| Process substitution | Supported | Supported |
+| Coprocess | Not supported | Supported |
+| Loadable builtins | Not supported | Supported |
+
+### POSIX Compliance
+
+fortsh passes POSIX compliance tests (3,776 tests). Some extensions may differ from strict POSIX.
+
+### shopt Options
+
+Not all bash shopt options are supported:
+
+```bash
+# Supported
+shopt -s nullglob
+shopt -s extglob
+
+# May not be supported
+shopt -s globstar       # Check documentation
+```
+
+## Resource Limits
+
+### Maximum Values
+
+| Resource | Limit |
+|----------|-------|
+| Line length (Linux/Intel Mac) | 1024 characters |
+| Line length (ARM Mac) | 127 characters |
+| History entries | 1000 (memory), 2000 (file) |
+| Associative array entries | 50 per array |
+| Control flow nesting | MAX_CONTROL_DEPTH |
+| Local variables | MAX_LOCAL_VARS per function |
+
+### Performance
+
+fortsh may be slower than bash on:
+- Very large scripts (thousands of lines)
+- Heavy process spawning
+- Complex string manipulation
+
+For most interactive use and moderate scripts, performance is comparable.
+
+## Reporting Issues
+
+If you encounter a limitation that should be fixed:
+
+1. Check if it's a known issue on GitHub
+2. Open an issue with a minimal reproduction case
+3. Include:
+   - fortsh version (`fortsh --version`)
+   - Platform (`uname -a`)
+   - Expected vs actual behavior
+
+GitHub: [github.com/fortrangoingonforty/fortsh/issues](https://github.com/fortrangoingonforty/fortsh/issues)
+
+## Future Improvements
+
+Planned improvements:
+
+- Increased associative array limits
+- More vi mode commands
+- Better nested brace expansion
+- Resolution of Apple Silicon limitation (pending compiler fixes)
+
+The project welcomes contributions for any of these areas.

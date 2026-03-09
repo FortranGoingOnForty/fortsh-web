@@ -1,0 +1,82 @@
+# macOS Intel
+
+fortsh runs with full functionality on Intel-based Macs.
+
+## Overview
+
+Unlike Apple Silicon, Intel Macs don't have the 127-character command line limitation. gfortran works correctly on x86_64 macOS.
+
+## Installation
+
+### Via Homebrew (Recommended)
+
+```bash
+brew install FortranGoingOnForty/tap/fortsh
+```
+
+### From Source
+
+```bash
+# Install gfortran
+brew install gcc
+
+# Clone and build
+git clone https://github.com/fortrangoingonforty/fortsh.git
+cd fortsh
+make
+sudo make install
+```
+
+## Compiler
+
+fortsh uses **gfortran** on Intel Macs, which requires the `-frecursive` flag for thread safety. The Makefile handles this automatically:
+
+```makefile
+# Intel Mac: use gfortran with -frecursive
+FC = gfortran
+FFLAGS += -frecursive
+```
+
+## No Limitations
+
+On Intel Macs:
+
+| Feature | Status |
+|---------|--------|
+| Command line length | Full (1024+ characters) |
+| String operations | Native Fortran |
+| All features | Fully functional |
+
+## Migration to Apple Silicon
+
+If you move from an Intel Mac to Apple Silicon:
+
+1. Reinstall via Homebrew (will get the ARM version)
+2. Be aware of the 127-character limit
+3. See [macOS Apple Silicon](/docs/platform/macos-arm) for details
+
+## Rosetta 2
+
+Running the Intel build under Rosetta 2 is possible but not recommended:
+
+```bash
+# Run Intel binary on Apple Silicon (not recommended)
+arch -x86_64 /usr/local/bin/fortsh
+```
+
+Use the native ARM build instead for better performance, despite its limitations.
+
+## System Requirements
+
+- macOS 10.14 (Mojave) or later
+- Xcode Command Line Tools
+- gfortran (via Homebrew or MacPorts)
+
+## Verification
+
+Check your installation:
+
+```bash
+fortsh --version
+fortsh -c 'echo "Line length: ${#0}"'  # Shows max command length
+```

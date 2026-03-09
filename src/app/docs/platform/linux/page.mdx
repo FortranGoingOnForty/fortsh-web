@@ -1,0 +1,167 @@
+# Linux
+
+fortsh has full functionality on Linux with no platform-specific limitations.
+
+## Overview
+
+Linux is the primary development platform for fortsh. All features work without restriction.
+
+## Installation Methods
+
+### Fedora / RHEL / Rocky / CentOS
+
+```bash
+# Add repository
+sudo dnf config-manager --add-repo https://repos.musicsian.com/musicsian.repo
+
+# Install
+sudo dnf install fortsh
+```
+
+### Arch Linux (AUR)
+
+```bash
+# Using yay
+yay -S fortsh
+
+# Using paru
+paru -S fortsh
+
+# Manual
+git clone https://aur.archlinux.org/fortsh.git
+cd fortsh
+makepkg -si
+```
+
+### Ubuntu / Debian
+
+Build from source:
+
+```bash
+# Install dependencies
+sudo apt install gfortran make git
+
+# Clone and build
+git clone https://github.com/fortrangoingonforty/fortsh.git
+cd fortsh
+make
+sudo make install
+```
+
+### From Source (Any Distribution)
+
+```bash
+# Ensure gfortran is installed
+# Fedora/RHEL: dnf install gcc-gfortran
+# Ubuntu/Debian: apt install gfortran
+# Arch: pacman -S gcc-fortran
+
+git clone https://github.com/fortrangoingonforty/fortsh.git
+cd fortsh
+make
+sudo make install
+```
+
+## Compiler
+
+fortsh uses **gfortran** on Linux:
+
+```makefile
+FC = gfortran
+FFLAGS = -O2 -frecursive
+```
+
+The `-frecursive` flag ensures thread safety for recursive functions.
+
+## Full Feature Set
+
+All features are available on Linux:
+
+| Feature | Status |
+|---------|--------|
+| Command line length | 1024+ characters |
+| History size | 1000 entries |
+| String operations | Native Fortran |
+| Signal handling | Full support |
+| Job control | Full support |
+| Tab completion | Full support |
+
+## Paths
+
+Default installation locations:
+
+| File | Location |
+|------|----------|
+| Binary | `/usr/local/bin/fortsh` |
+| Config | `~/.fortshrc` |
+| History | `~/.fortsh_history` |
+
+## Setting as Default Shell
+
+To make fortsh your login shell:
+
+```bash
+# Add to /etc/shells
+echo /usr/local/bin/fortsh | sudo tee -a /etc/shells
+
+# Change shell
+chsh -s /usr/local/bin/fortsh
+```
+
+## Terminal Support
+
+fortsh works with all standard terminal emulators:
+
+- GNOME Terminal
+- Konsole
+- Alacritty
+- kitty
+- xterm
+- tmux / screen
+
+For best syntax highlighting support, use a terminal with true color (24-bit) support.
+
+## Verification
+
+Check your installation:
+
+```bash
+fortsh --version
+echo $FORTSH_VERSION
+
+# Run tests
+cd fortsh
+make test
+```
+
+## Troubleshooting
+
+### Missing gfortran
+
+```bash
+# Fedora/RHEL
+sudo dnf install gcc-gfortran
+
+# Ubuntu/Debian
+sudo apt install gfortran
+
+# Arch
+sudo pacman -S gcc-fortran
+```
+
+### Build Errors
+
+Ensure you have a recent gfortran (version 9 or later recommended):
+
+```bash
+gfortran --version
+```
+
+### Runtime Errors
+
+Check terminal capabilities:
+
+```bash
+echo $TERM
+# Should be something like "xterm-256color"
+```

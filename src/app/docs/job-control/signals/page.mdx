@@ -1,0 +1,292 @@
+# Signals & Traps
+
+Handle Unix signals and define cleanup actions.
+
+**Source:** `src/system/signal_handling.f90`, `src/execution/builtins.f90:1139-1466`
+
+## Signal List
+
+Common signals:
+
+| Signal | Number | Default Action | Description |
+|--------|--------|----------------|-------------|
+| SIGHUP | 1 | Terminate | Hangup (terminal closed) |
+| SIGINT | 2 | Terminate | Interrupt (Ctrl+C) |
+| SIGQUIT | 3 | Core dump | Quit (Ctrl+\\) |
+| SIGKILL | 9 | Terminate | Kill (cannot be caught) |
+| SIGTERM | 15 | Terminate | Termination request |
+| SIGSTOP | 19 | Stop | Stop (cannot be caught) |
+| SIGTSTP | 20 | Stop | Terminal stop (Ctrl+Z) |
+| SIGCONT | 18 | Continue | Continue if stopped |
+| SIGCHLD | 17 | Ignore | Child status changed |
+
+List all signals:
+
+```bash
+kill -l
+#  1) SIGHUP    2) SIGINT    3) SIGQUIT   4) SIGILL
+#  5) SIGTRAP   6) SIGABRT   7) SIGBUS    8) SIGFPE
+#  9) SIGKILL  10) SIGUSR1  11) SIGSEGV  12) SIGUSR2
+# 13) SIGPIPE  14) SIGALRM  15) SIGTERM  16) SIGSTKFLT
+# 17) SIGCHLD  18) SIGCONT  19) SIGSTOP  20) SIGTSTP
+# 21) SIGTTIN  22) SIGTTOU
+```
+
+**Source:** signal_handling.f90:12-33
+
+## kill - Send Signals
+
+Send signals to processes or jobs:
+
+```bash
+kill pid              # SIGTERM (default)
+kill -SIGNAL pid      # Specific signal
+kill -9 pid           # SIGKILL
+kill -KILL pid        # Same as above
+kill %n               # Send to job n
+```
+
+### Signal Specification
+
+```bash
+kill -2 pid           # By number
+kill -INT pid         # By name
+kill -SIGINT pid      # With SIG prefix
+```
+
+### Process Groups
+
+Send to entire process group (negative PID):
+
+```bash
+kill -- -1234         # Kill process group 1234
+kill -TERM -- -$pgid  # SIGTERM to group
+```
+
+**Source:** builtins.f90:1139-1283
+
+## trap - Signal Handlers
+
+Set commands to run on signals:
+
+```bash
+trap 'command' SIGNAL [SIGNAL ...]
+```
+
+### Basic Usage
+
+```bash
+# Cleanup on exit
+trap 'rm -f /tmp/mytemp.$$' EXIT
+
+# Ignore interrupt
+trap '' INT
+
+# Custom handler
+trap 'echo "Caught SIGINT"' INT
+```
+
+### Trap Actions
+
+| Action | Effect |
+|--------|--------|
+| `trap 'cmd' SIG` | Execute cmd on signal |
+| `trap '' SIG` | Ignore signal |
+| `trap - SIG` | Reset to default |
+| `trap SIG` | Reset to default (POSIX) |
+
+### Special Pseudo-Signals
+
+| Signal | When Triggered |
+|--------|----------------|
+| `EXIT` (0) | Shell exit |
+| `DEBUG` | Before each command |
+| `ERR` | Command returns non-zero |
+| `RETURN` | Function/source returns |
+
+```bash
+# Cleanup on exit
+trap 'cleanup' EXIT
+
+# Debug tracing
+trap 'echo "+ $BASH_COMMAND"' DEBUG
+
+# Error handler
+trap 'echo "Error at line $LINENO"' ERR
+```
+
+**Source:** signal_handling.f90: TRAP_EXIT=0, TRAP_DEBUG=-1, TRAP_ERR=-2, TRAP_RETURN=-3
+
+### Listing Traps
+
+```bash
+trap -p            # Show all traps
+trap -p INT        # Show specific trap
+```
+
+**Source:** builtins.f90:1381-1409
+
+### Removing Traps
+
+```bash
+trap - INT         # Reset INT to default
+trap - EXIT DEBUG  # Reset multiple
+```
+
+**Source:** builtins.f90:1432-1434
+
+## Implementation Details
+
+### Signal Handler Registration
+
+Traps are registered using POSIX `sigaction()`:
+
+```fortran
+subroutine set_signal_trap(shell, signal, command)
+  ! Stores command in shell%traps array
+  ! Registers C signal handler via c_sigaction()
+end subroutine
+```
+
+**Source:** signal_handling.f90:247-297
+
+### Non-Trappable Signals
+
+These signals cannot be caught or ignored:
+
+- `SIGKILL` (9) - Always terminates
+- `SIGSTOP` (19) - Always stops
+
+```bash
+trap 'echo caught' KILL   # No effect
+```
+
+**Source:** signal_handling.f90:409-415 - `is_trappable_signal()`
+
+### Trap Execution
+
+When a signal arrives:
+
+1. Generic handler sets `shell%pending_trap_signal`
+2. At safe point, executor calls `execute_trap()`
+3. Trap command runs with `shell%in_trap = .true.`
+4. Recursive traps are prevented
+
+**Source:** signal_handling.f90:88-95, 419-459
+
+## Common Patterns
+
+### Cleanup on Exit
+
+```bash
+tmpfile=$(mktemp)
+trap 'rm -f "$tmpfile"' EXIT
+
+# Work with tmpfile...
+# Cleanup happens automatically on exit
+```
+
+### Graceful Shutdown
+
+```bash
+shutdown=false
+trap 'shutdown=true' TERM INT
+
+while ! $shutdown; do
+    process_work
+    sleep 1
+done
+
+cleanup
+```
+
+### Prevent Interrupt
+
+```bash
+# Critical section
+trap '' INT
+critical_operation
+trap - INT   # Restore
+```
+
+### Error Handling
+
+```bash
+set -e
+trap 'echo "Error on line $LINENO"; exit 1' ERR
+
+risky_command
+another_command
+```
+
+### Cleanup Stack
+
+```bash
+cleanup_funcs=()
+
+add_cleanup() {
+    cleanup_funcs+=("$1")
+}
+
+run_cleanup() {
+    for ((i=${#cleanup_funcs[@]}-1; i>=0; i--)); do
+        ${cleanup_funcs[$i]}
+    done
+}
+
+trap run_cleanup EXIT
+
+add_cleanup 'rm -f /tmp/file1'
+add_cleanup 'rm -f /tmp/file2'
+```
+
+### Signal Forwarding
+
+```bash
+# Forward signals to child
+child_pid=""
+
+trap 'kill -TERM $child_pid 2>/dev/null' TERM INT
+
+./long_process &
+child_pid=$!
+wait $child_pid
+```
+
+## Wait Status
+
+When a process terminates, its status indicates how:
+
+**Source:** interface.f90:728-759
+
+```fortran
+WIFEXITED(status)    ! True if exited normally
+WEXITSTATUS(status)  ! Exit code (0-255)
+WIFSIGNALED(status)  ! True if killed by signal
+WTERMSIG(status)     ! Signal that killed it
+WIFSTOPPED(status)   ! True if stopped
+```
+
+```bash
+./program &
+wait $!
+status=$?
+
+if [[ $status -gt 128 ]]; then
+    signal=$((status - 128))
+    echo "Killed by signal $signal"
+else
+    echo "Exited with code $status"
+fi
+```
+
+## Best Practices
+
+1. **Always clean up** - Use `trap EXIT` for cleanup
+2. **Don't ignore TERM** - Allow graceful shutdown
+3. **Re-raise signals** - Exit with signal status after handling:
+   ```bash
+   trap 'cleanup; trap - TERM; kill -TERM $$' TERM
+   ```
+4. **Test signal handling** - Use `kill -SIGNAL $$` to test
+5. **Keep handlers simple** - Complex handlers can cause race conditions
