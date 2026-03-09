@@ -42,3 +42,4 @@ next-env.d.ts
 # stats database
 /data/
 stats.json
+.fackr/

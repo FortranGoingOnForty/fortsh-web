@@ -1,0 +1,115 @@
+# export
+
+Mark variables for export to child processes.
+
+**Source:** `src/execution/builtins.f90:525-620`
+
+## Synopsis
+
+```bash
+export [name[=value] ...]
+export -p
+```
+
+## Description
+
+The `export` builtin marks shell variables for export to child processes. Exported variables become environment variables accessible to any commands or scripts invoked by the shell.
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `-p` | Print all exported variables in reusable format |
+
+## Usage
+
+### Export with Assignment
+
+```bash
+export PATH="/usr/local/bin:$PATH"
+export EDITOR=vim
+export DEBUG=1 VERBOSE=true
+```
+
+### Export Existing Variable
+
+```bash
+myvar="some value"
+export myvar
+```
+
+### List Exported Variables
+
+```bash
+export -p
+# declare -x HOME="/home/user"
+# declare -x PATH="/usr/bin:/bin"
+# ...
+```
+
+### Without Arguments
+
+```bash
+export
+# Lists all exported variables
+```
+
+## Examples
+
+### PATH Manipulation
+
+```bash
+# Prepend directory
+export PATH="/my/scripts:$PATH"
+
+# Append directory
+export PATH="$PATH:/my/tools"
+```
+
+### Configuration Variables
+
+```bash
+export LANG=en_US.UTF-8
+export LC_ALL=C
+export TZ=America/New_York
+```
+
+### Application Settings
+
+```bash
+export JAVA_HOME=/usr/lib/jvm/java-17
+export GOPATH=$HOME/go
+export RUSTUP_HOME=$HOME/.rustup
+```
+
+### Temporary Export
+
+```bash
+# Export for one command only
+DEBUG=1 ./myscript.sh
+```
+
+## Behavior
+
+1. Variable is marked with `exported = .true.` in shell state
+2. `set_environment_var()` is called to update system environment
+3. All child processes inherit the variable
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | Success |
+| 1 | Invalid variable name or other error |
+
+## Notes
+
+- Export persists for the shell session
+- Child processes get a copy (changes don't affect parent)
+- Use `unset` to remove exported variables
+- Readonly variables cannot be unexported
+
+## See Also
+
+- [Environment Variables](/docs/variables/environment)
+- [declare](/docs/builtins/declare) - `declare -x` also exports

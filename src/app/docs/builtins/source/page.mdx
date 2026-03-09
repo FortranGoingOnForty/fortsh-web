@@ -1,0 +1,203 @@
+# source
+
+Execute commands from a file in the current shell.
+
+**Source:** `src/execution/builtins.f90:929-1039`
+
+## Synopsis
+
+```bash
+source filename [arguments]
+. filename [arguments]
+```
+
+## Description
+
+The `source` builtin (and its alias `.`) reads and executes commands from a file in the current shell environment. Unlike executing a script, sourced commands affect the current shell's variables, functions, and aliases.
+
+## Usage
+
+### Basic Source
+
+```bash
+source ~/.bashrc
+. ~/.profile
+```
+
+### With Arguments
+
+```bash
+source script.sh arg1 arg2
+# Inside script.sh: $1 is "arg1", $2 is "arg2"
+```
+
+## Path Search
+
+If the filename doesn't contain a `/`, fortsh searches:
+
+1. Current directory
+2. Directories in `PATH`
+
+```bash
+source mylib.sh          # Searches PATH
+source ./mylib.sh        # Current directory only
+source /path/to/lib.sh   # Absolute path
+```
+
+## Examples
+
+### Load Configuration
+
+```bash
+# ~/.fortshrc
+source ~/.aliases
+source ~/.functions
+source ~/.local_config
+```
+
+### Load Library Functions
+
+```bash
+# utils.sh
+log() {
+    echo "[$(date)] $*"
+}
+
+die() {
+    echo "Error: $*" >&2
+    exit 1
+}
+
+# main.sh
+source utils.sh
+log "Starting script"
+```
+
+### Environment Setup
+
+```bash
+# development.env
+export DEBUG=1
+export API_URL="http://localhost:8080"
+export DB_HOST="localhost"
+
+# Usage
+source development.env
+echo $API_URL
+```
+
+### Conditional Sourcing
+
+```bash
+# Source if file exists
+[[ -f ~/.local_config ]] && source ~/.local_config
+
+# Source with error handling
+if ! source config.sh 2>/dev/null; then
+    echo "Warning: config.sh not found"
+fi
+```
+
+## Behavior
+
+### Variable Scope
+
+Sourced variables exist in the current shell:
+
+```bash
+# vars.sh
+myvar="from sourced file"
+
+# Shell
+source vars.sh
+echo $myvar    # "from sourced file"
+```
+
+### Function Definitions
+
+Functions defined in sourced files are available:
+
+```bash
+# funcs.sh
+greet() {
+    echo "Hello, $1!"
+}
+
+# Shell
+source funcs.sh
+greet "World"    # "Hello, World!"
+```
+
+### Exit Behavior
+
+- `exit` in a sourced file exits the shell
+- `return` in a sourced file returns to the caller
+
+```bash
+# lib.sh
+if [[ -z "$REQUIRED_VAR" ]]; then
+    echo "REQUIRED_VAR not set" >&2
+    return 1   # Returns, doesn't exit shell
+fi
+```
+
+## Implementation
+
+**Source:** builtins.f90:929-1039
+
+1. Parse filename from arguments
+2. If no `/` in filename, search PATH
+3. Set positional parameters from remaining arguments
+4. Mark file for sourcing (shell%source_file)
+5. Execute file contents in current shell context
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | Success (or last command's status) |
+| 1 | File not found or not readable |
+
+## Differences from Execution
+
+| Aspect | `source file` | `./file` |
+|--------|--------------|----------|
+| Process | Same shell | New subshell |
+| Variables | Affects current | Isolated |
+| Functions | Available after | Lost after |
+| `exit` | Exits shell | Exits script only |
+
+## Common Patterns
+
+### Guard Against Re-sourcing
+
+```bash
+# mylib.sh
+[[ -n "$_MYLIB_LOADED" ]] && return
+_MYLIB_LOADED=1
+
+# Library code here...
+```
+
+### Platform-Specific Config
+
+```bash
+# Load platform-specific settings
+case "$(uname)" in
+    Linux)  source ~/.config/linux.sh ;;
+    Darwin) source ~/.config/macos.sh ;;
+esac
+```
+
+### Source All Files in Directory
+
+```bash
+for f in ~/.config/shell.d/*.sh; do
+    [[ -r "$f" ]] && source "$f"
+done
+```
+
+## See Also
+
+- [Configuration](/docs/getting-started/configuration) - Shell startup files
+- [Functions](/docs/control-flow/functions) - Defining functions

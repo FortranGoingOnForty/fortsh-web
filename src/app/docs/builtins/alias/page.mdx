@@ -1,0 +1,194 @@
+# alias
+
+Create or display command aliases.
+
+**Source:** `src/execution/builtins.f90:1493-1589`
+
+## Synopsis
+
+```bash
+alias [name[=value] ...]
+alias -p
+unalias name [name ...]
+unalias -a
+```
+
+## Description
+
+The `alias` builtin creates shortcut names for commands. When an alias is used as a command, its value is substituted before execution.
+
+## Usage
+
+### Create Alias
+
+```bash
+alias ll='ls -la'
+alias grep='grep --color=auto'
+alias ..='cd ..'
+```
+
+### Show Specific Alias
+
+```bash
+alias ll
+# alias ll='ls -la'
+```
+
+### Show All Aliases
+
+```bash
+alias
+# alias ll='ls -la'
+# alias grep='grep --color=auto'
+```
+
+### Print All (Reusable Format)
+
+```bash
+alias -p
+```
+
+## Removing Aliases
+
+### Remove Specific Alias
+
+```bash
+unalias ll
+```
+
+### Remove All Aliases
+
+```bash
+unalias -a
+```
+
+## Examples
+
+### Common Aliases
+
+```bash
+# Navigation
+alias ..='cd ..'
+alias ...='cd ../..'
+alias ~='cd ~'
+
+# Safety
+alias rm='rm -i'
+alias cp='cp -i'
+alias mv='mv -i'
+
+# Colorize
+alias ls='ls --color=auto'
+alias grep='grep --color=auto'
+alias diff='diff --color=auto'
+
+# Git shortcuts
+alias gs='git status'
+alias gc='git commit'
+alias gp='git push'
+alias gl='git log --oneline'
+```
+
+### Complex Aliases
+
+```bash
+# Alias with multiple commands
+alias update='sudo dnf update && flatpak update'
+
+# Alias with pipes
+alias ports='netstat -tuln | grep LISTEN'
+
+# Alias using variables
+alias projects='cd $HOME/projects'
+```
+
+### Aliases in Scripts
+
+Aliases are not expanded in non-interactive shells by default. To use aliases in scripts:
+
+```bash
+shopt -s expand_aliases
+source ~/.bash_aliases
+```
+
+## Quoting
+
+Both single and double quotes work:
+
+```bash
+alias hello="echo 'Hello, World!'"
+alias hello='echo "Hello, World!"'
+```
+
+The outer quotes are stripped during alias creation.
+
+## Alias Expansion
+
+Aliases are expanded only for the first word of a command:
+
+```bash
+alias ls='ls --color'
+ls -la                  # Expands to: ls --color -la
+
+echo ls                 # Does NOT expand (ls is not first word)
+```
+
+### Chained Aliases
+
+If an alias value ends with a space, the next word is also checked:
+
+```bash
+alias sudo='sudo '      # Note trailing space
+alias dnf='dnf -y'
+sudo dnf install pkg    # Expands both: sudo -y install pkg
+```
+
+## Implementation
+
+**Source:** builtins.f90:1493-1555 (`builtin_alias`)
+
+Aliases are stored in `shell%aliases` array with name and value pairs:
+- Handles quoted values (strips outer quotes)
+- Supports multiple aliases per command
+
+**Source:** builtins.f90:1557-1589 (`builtin_unalias`)
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | Success |
+| 1 | Alias not found (unalias) or invalid syntax |
+
+## Tips
+
+### Define Aliases in Config
+
+Add to `~/.fortshrc`:
+
+```bash
+# Load aliases from separate file
+if [[ -f ~/.aliases ]]; then
+    source ~/.aliases
+fi
+```
+
+### Check Before Aliasing
+
+```bash
+# See what a command resolves to
+type ls
+# ls is aliased to 'ls --color=auto'
+```
+
+### Bypass Alias
+
+```bash
+\ls           # Backslash bypasses alias
+command ls    # 'command' builtin bypasses alias
+```
+
+## See Also
+
+- [type](/docs/builtins/type) - Show what a command resolves to
+- [command](/docs/builtins/command) - Run command bypassing aliases
