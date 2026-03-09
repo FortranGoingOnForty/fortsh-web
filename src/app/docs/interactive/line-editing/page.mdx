@@ -1,0 +1,259 @@
+# Line Editing
+
+fortsh provides comprehensive line editing with both Emacs and Vi modes.
+
+**Source:** `src/io/readline.f90:42-62, 2042-2320`
+
+## Editing Modes
+
+### Emacs Mode (Default)
+
+Most users are familiar with Emacs-style keybindings:
+
+```bash
+set -o emacs   # Enable (default)
+```
+
+### Vi Mode
+
+For vi/vim users:
+
+```bash
+set -o vi      # Enable vi mode
+```
+
+Vi mode has two states:
+- **Insert mode** - Normal text input
+- **Command mode** - Navigation and editing (press ESC)
+
+## Emacs Keybindings
+
+### Cursor Movement
+
+| Key | Action |
+|-----|--------|
+| `Ctrl+A` | Beginning of line |
+| `Ctrl+E` | End of line |
+| `Ctrl+B` | Back one character |
+| `Ctrl+F` | Forward one character |
+| `Alt+B` | Back one word |
+| `Alt+F` | Forward one word |
+
+### Editing
+
+| Key | Action |
+|-----|--------|
+| `Ctrl+D` | Delete character at cursor (or EOF if empty) |
+| `Backspace` | Delete character before cursor |
+| `Ctrl+K` | Kill (cut) to end of line |
+| `Ctrl+U` | Kill entire line |
+| `Ctrl+W` | Kill previous word |
+| `Alt+D` | Kill next word |
+| `Ctrl+Y` | Yank (paste) killed text |
+| `Ctrl+T` | Transpose characters |
+| `Alt+T` | Transpose words |
+
+### History
+
+| Key | Action |
+|-----|--------|
+| `Up` / `Ctrl+P` | Previous history entry |
+| `Down` / `Ctrl+N` | Next history entry |
+| `Ctrl+R` | Reverse incremental search |
+| `Ctrl+S` | Forward incremental search |
+| `Alt+<` | First history entry |
+| `Alt+>` | Last history entry |
+
+### Control
+
+| Key | Action |
+|-----|--------|
+| `Ctrl+C` | Cancel current input |
+| `Ctrl+G` | Abort (cancel search/operation) |
+| `Ctrl+L` | Clear screen |
+| `Ctrl+Z` | Suspend shell |
+
+### fortsh-Specific
+
+| Key | Action |
+|-----|--------|
+| `Ctrl+H` | FZF history browser |
+| `Ctrl+F` | FZF file browser |
+| `Ctrl+X` | Process kill mode |
+
+## Vi Mode
+
+### Switching Modes
+
+- `ESC` - Enter command mode
+- `i`, `a`, `I`, `A`, etc. - Enter insert mode
+
+### Insert Mode Commands
+
+| Key | Action |
+|-----|--------|
+| `i` | Insert before cursor |
+| `a` | Insert after cursor |
+| `I` | Insert at beginning of line |
+| `A` | Insert at end of line |
+| `o` | Open line below |
+| `O` | Open line above |
+
+### Command Mode Navigation
+
+| Key | Action |
+|-----|--------|
+| `h` | Move left |
+| `l` | Move right |
+| `0` | Beginning of line |
+| `$` | End of line |
+| `w` | Next word |
+| `b` | Previous word |
+| `e` | End of word |
+| `j` | History down |
+| `k` | History up |
+
+### Command Mode Editing
+
+| Key | Action |
+|-----|--------|
+| `x` | Delete character at cursor |
+| `X` | Delete character before cursor |
+| `dw` | Delete word |
+| `dd` | Delete entire line |
+| `d$` | Delete to end of line |
+| `d0` | Delete to beginning |
+| `cw` | Change word |
+| `cc` | Change entire line |
+| `r` | Replace character |
+| `R` | Replace mode |
+
+### Vi Repeat Counts
+
+Commands can be prefixed with a count:
+
+```
+3w     # Move 3 words forward
+5x     # Delete 5 characters
+2dd    # Delete 2 lines
+```
+
+### Vi Marks
+
+Set and jump to positions:
+
+- `ma` - Set mark 'a' at current position
+- `` `a `` - Jump to mark 'a'
+- `'a` - Jump to beginning of line with mark 'a'
+
+### Vi Search
+
+- `/pattern` - Search forward
+- `?pattern` - Search backward
+- `n` - Next match
+- `N` - Previous match
+
+## Incremental Search
+
+### Reverse Search (Ctrl+R)
+
+Search backward through history:
+
+```
+(reverse-i-search)`git': git commit -m "fix bug"
+```
+
+- Type characters to narrow search
+- `Ctrl+R` again: next match
+- `Ctrl+S`: switch to forward search
+- `Enter`: accept result
+- `Ctrl+G`: cancel
+
+### Forward Search (Ctrl+S)
+
+Search forward through history:
+
+```
+(i-search)`make': make clean
+```
+
+Note: `Ctrl+S` may be intercepted by terminal flow control. Disable with:
+
+```bash
+stty -ixon
+```
+
+## Kill Ring
+
+Text cut with `Ctrl+K`, `Ctrl+U`, `Ctrl+W`, etc. is saved to the kill ring.
+
+- `Ctrl+Y` - Paste most recent kill
+- `Alt+Y` - Cycle through kill ring (after Ctrl+Y)
+
+## Word Movement
+
+Word boundaries depend on character class:
+- Alphanumeric characters and underscores form words
+- Punctuation and whitespace separate words
+
+```bash
+# Cursor positions marked with |
+path=/usr/local/bin
+     |   |     |    # Word boundaries
+```
+
+## Implementation Details
+
+### State Management
+
+Line editing state is managed by `input_state_t` (readline.f90:112-199):
+
+```fortran
+type :: input_state_t
+  character(len=MAX_LINE_LEN) :: buffer
+  integer :: cursor_pos           ! 0-based
+  integer :: editing_mode         ! EMACS or VI
+  integer :: vi_mode              ! INSERT or COMMAND
+  character(len=64) :: vi_command_buffer
+  integer :: vi_marks(26)         ! Marks a-z
+  logical :: dirty                ! Needs redraw
+end type
+```
+
+### Mode Constants
+
+```fortran
+integer, parameter :: EDITING_MODE_EMACS = 1
+integer, parameter :: EDITING_MODE_VI = 2
+integer, parameter :: VI_MODE_INSERT = 1
+integer, parameter :: VI_MODE_COMMAND = 2
+```
+
+Source: readline.f90:93-97
+
+## Configuration
+
+### inputrc
+
+Create `~/.inputrc` for readline configuration:
+
+```
+# Vi mode by default
+set editing-mode vi
+
+# Show mode in prompt
+set show-mode-in-prompt on
+
+# Case-insensitive completion
+set completion-ignore-case on
+```
+
+### Shell Options
+
+```bash
+# Switch to vi mode
+set -o vi
+
+# Switch back to emacs mode
+set -o emacs
+```

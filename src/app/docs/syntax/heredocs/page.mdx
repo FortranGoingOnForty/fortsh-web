@@ -1,0 +1,259 @@
+# Here-Documents
+
+Here-documents provide multi-line input to commands.
+
+**Source:** `src/io/heredoc.f90`, `src/parsing/parser.f90`
+
+## Basic Syntax
+
+```bash
+command << DELIMITER
+content line 1
+content line 2
+DELIMITER
+```
+
+The delimiter can be any word. `EOF` is conventional:
+
+```bash
+cat << EOF
+This is the content.
+Multiple lines work.
+EOF
+```
+
+## Expansion in Here-Documents
+
+By default, variables and commands are expanded:
+
+```bash
+name="World"
+cat << EOF
+Hello, $name!
+Today is $(date).
+EOF
+```
+
+Output:
+```
+Hello, World!
+Today is Mon Mar 9 22:00:00 UTC 2026.
+```
+
+## Preventing Expansion
+
+Quote the delimiter to prevent expansion:
+
+```bash
+cat << 'EOF'
+Hello, $name!
+Commands: $(whoami)
+EOF
+```
+
+Output (literal):
+```
+Hello, $name!
+Commands: $(whoami)
+```
+
+Any quoting style works:
+
+```bash
+cat << "EOF"    # Double quotes also prevent expansion
+cat << \EOF     # Backslash also works
+```
+
+## Stripping Leading Tabs
+
+Use `<<-` to strip leading **tabs** (not spaces):
+
+```bash
+if true; then
+    cat <<- EOF
+	Line 1 (tab-indented)
+	Line 2 (tab-indented)
+	EOF
+fi
+```
+
+This allows indenting heredocs in code while keeping content aligned.
+
+## Here-Strings
+
+A single-line variant:
+
+```bash
+command <<< "string"
+```
+
+```bash
+grep pattern <<< "$variable"
+read first rest <<< "one two three"
+bc <<< "2 + 2"
+```
+
+## Common Uses
+
+### Multi-line text
+
+```bash
+cat << EOF > config.txt
+[settings]
+name = myapp
+debug = false
+EOF
+```
+
+### Script generation
+
+```bash
+cat << 'EOF' > script.sh
+#!/bin/bash
+echo "Generated script"
+exit 0
+EOF
+chmod +x script.sh
+```
+
+### SQL queries
+
+```bash
+mysql -u root << EOF
+SELECT * FROM users
+WHERE active = 1;
+EOF
+```
+
+### Email composition
+
+```bash
+mail -s "Subject" user@example.com << EOF
+Dear User,
+
+This is the message body.
+
+Regards,
+System
+EOF
+```
+
+### Configuration blocks
+
+```bash
+sudo tee /etc/nginx/conf.d/app.conf << 'EOF'
+server {
+    listen 80;
+    server_name example.com;
+    root /var/www/html;
+}
+EOF
+```
+
+## Combining with Redirection
+
+### Write to file
+
+```bash
+cat << EOF > output.txt
+Content here
+EOF
+```
+
+### Append to file
+
+```bash
+cat << EOF >> output.txt
+More content
+EOF
+```
+
+### Pipe to command
+
+```bash
+cat << EOF | grep pattern
+line 1
+line 2 with pattern
+line 3
+EOF
+```
+
+## Nested Quotes
+
+Quotes in heredoc content are literal:
+
+```bash
+cat << EOF
+He said "hello" and 'goodbye'.
+EOF
+```
+
+Output:
+```
+He said "hello" and 'goodbye'.
+```
+
+## Special Characters
+
+Most special characters are literal in heredocs:
+
+```bash
+cat << 'EOF'
+Backslash: \
+Asterisk: *
+Dollar: $
+Backtick: `
+EOF
+```
+
+With expansion enabled, only `$`, `` ` ``, and `\` are special.
+
+## Variables in Delimiter
+
+The delimiter itself can be a variable (rarely used):
+
+```bash
+delim="END"
+cat << $delim
+Content
+END
+```
+
+## Empty Here-Document
+
+```bash
+cat << EOF
+EOF
+```
+
+Produces no output (zero lines).
+
+## Whitespace Handling
+
+- Trailing whitespace on content lines is preserved
+- The delimiter line must match exactly (no trailing whitespace)
+- Leading tabs are stripped only with `<<-`
+
+## Implementation Details
+
+From `heredoc.f90`:
+
+```fortran
+! Read lines until delimiter found
+do while (.not. found_delimiter)
+    call read_line(line)
+    if (trim(line) == delimiter) then
+        found_delimiter = .true.
+    else
+        content = content // line // newline
+    end if
+end do
+```
+
+## Best Practices
+
+1. Use `EOF` or descriptive delimiter (`END_SQL`, `END_CONFIG`)
+2. Quote delimiter when embedding scripts: `<< 'EOF'`
+3. Use `<<-` for indented code blocks
+4. Prefer here-strings for single lines: `<<< "text"`
+5. Be consistent with quoting style

@@ -1,0 +1,179 @@
+# Variables
+
+fortsh supports shell variables, arrays, associative arrays, and special parameters.
+
+**Source:** `src/scripting/variables.f90`
+
+## Topics
+
+- [Special Variables](/docs/variables/special) - `$?`, `$#`, `$@`, etc.
+- [Arrays](/docs/variables/arrays) - Indexed arrays
+- [Associative Arrays](/docs/variables/associative) - Key-value storage
+- [Environment](/docs/variables/environment) - Environment variables
+
+## Variable Assignment
+
+```bash
+name=value                    # Simple assignment
+name="value with spaces"      # Quoted value
+name=$other                   # From another variable
+name=$(command)               # From command output
+name=$((1 + 2))              # From arithmetic
+```
+
+No spaces around `=`:
+
+```bash
+name = value                  # Wrong! Runs "name" with args "=" "value"
+name= value                   # Wrong! Sets name to empty, runs "value"
+name =value                   # Wrong! Runs "name" with arg "=value"
+```
+
+## Using Variables
+
+```bash
+echo $name                    # Simple expansion
+echo ${name}                  # Explicit boundaries
+echo "${name}"                # Quoted (preserves whitespace)
+echo "Hello, ${name}!"        # Embedded in string
+```
+
+## Variable Scope
+
+### Global Variables
+
+```bash
+name="global"
+echo $name                    # global
+```
+
+### Local Variables (in functions)
+
+```bash
+myfunc() {
+    local name="local"
+    echo $name                # local
+}
+myfunc
+echo $name                    # global (unchanged)
+```
+
+### Exported Variables
+
+```bash
+export PATH="$HOME/bin:$PATH"
+export EDITOR=vim
+
+# Or in one line
+export PATH EDITOR
+```
+
+Exported variables are inherited by child processes.
+
+## Variable Attributes
+
+### readonly
+
+```bash
+readonly PI=3.14159
+PI=3                          # Error: PI is readonly
+```
+
+### export
+
+```bash
+export VAR=value              # Set and export
+export VAR                    # Export existing variable
+```
+
+### declare
+
+```bash
+declare -r CONST=value        # Readonly
+declare -x EXPORTED=value     # Exported
+declare -i NUMBER=42          # Integer (arithmetic context)
+declare -a ARRAY              # Indexed array
+declare -A ASSOC              # Associative array
+```
+
+## Unsetting Variables
+
+```bash
+unset name                    # Remove variable
+unset -v name                 # Explicitly variable
+unset -f func                 # Remove function
+```
+
+Cannot unset readonly variables.
+
+## Default Values
+
+```bash
+${var:-default}               # Use default if unset/empty
+${var:=default}               # Set to default if unset/empty
+${var:+alternate}             # Use alternate if set/non-empty
+${var:?error}                 # Error if unset/empty
+```
+
+See [Expansion](/docs/syntax/expansion) for full details.
+
+## Variable Types
+
+### Strings (default)
+
+```bash
+name="hello world"
+echo ${#name}                 # 11 (length)
+```
+
+### Integers
+
+```bash
+declare -i count=0
+count=count+1                 # Arithmetic without $(())
+echo $count                   # 1
+```
+
+### Arrays
+
+```bash
+arr=(one two three)
+echo ${arr[0]}                # one
+echo ${arr[@]}                # one two three
+```
+
+### Associative Arrays
+
+```bash
+declare -A map
+map[key]=value
+echo ${map[key]}              # value
+```
+
+## Naming Rules
+
+- Start with letter or underscore
+- Contain letters, digits, underscores
+- Case-sensitive
+
+```bash
+valid_name=ok
+_also_valid=ok
+name2=ok
+2name=invalid                 # Cannot start with digit
+my-var=invalid                # Hyphens not allowed
+```
+
+## Quick Reference
+
+| Syntax | Meaning |
+|--------|---------|
+| `$var` | Variable value |
+| `${var}` | Variable value (explicit) |
+| `${#var}` | Length of value |
+| `${var:-default}` | Default if unset |
+| `${var:=default}` | Assign default if unset |
+| `${var:?error}` | Error if unset |
+| `${var:+alt}` | Alternate if set |
+| `${!var}` | Indirect expansion |
+| `${var@Q}` | Quote value |

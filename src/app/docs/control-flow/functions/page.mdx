@@ -1,0 +1,324 @@
+# Functions
+
+Named groups of commands that can be called with arguments.
+
+**Source:** `src/scripting/control_flow.f90:1201-1216`, `src/ast/evaluator_simple_real.f90:2498-2589`, `src/execution/builtins.f90:2307-2539`
+
+## Defining Functions
+
+### Standard Syntax
+
+```bash
+function name {
+    commands
+}
+```
+
+### POSIX Syntax
+
+```bash
+name() {
+    commands
+}
+```
+
+Both forms are equivalent. Function definitions are stored in the shell's function table and can be called by name.
+
+## Calling Functions
+
+```bash
+greet() {
+    echo "Hello, $1!"
+}
+
+greet "World"
+# Output: Hello, World!
+```
+
+### Arguments
+
+Functions receive arguments as positional parameters:
+
+```bash
+show_args() {
+    echo "Function: $0"      # Script name (not function name)
+    echo "Arg count: $#"
+    echo "All args: $@"
+    echo "First: $1"
+    echo "Second: $2"
+}
+
+show_args one two three
+```
+
+The caller's positional parameters are saved before function execution and restored afterward (evaluator_simple_real.f90:2551-2553).
+
+## Local Variables
+
+**Source:** `builtins.f90:2307-2371`
+
+Variables declared with `local` are scoped to the function:
+
+```bash
+outer="global"
+
+myfunc() {
+    local outer="local"
+    echo "Inside: $outer"
+}
+
+myfunc
+echo "Outside: $outer"
+# Output:
+# Inside: local
+# Outside: global
+```
+
+### Declaration Forms
+
+```bash
+func() {
+    local var              # Declare without value
+    local var=value        # Declare with value
+    local a=1 b=2 c=3      # Multiple declarations
+    local readonly=5       # "readonly" is just a variable name here
+}
+```
+
+### Scope Rules
+
+- Local variables shadow global variables of the same name
+- Modifications to local variables don't affect globals
+- Child functions can see parent's local variables (dynamic scope)
+- Local declarations only valid inside functions (error otherwise)
+
+```bash
+outer() {
+    local x=1
+    inner
+}
+
+inner() {
+    echo "x=$x"  # Sees outer's local x
+}
+
+outer
+# Output: x=1
+```
+
+### Implementation
+
+Local variables are stored in a 2D array indexed by `[function_depth, variable_index]`. Each function level has its own count via `local_var_counts`. There's a limit of `MAX_LOCAL_VARS` per function level.
+
+## Return Statement
+
+**Source:** `builtins.f90:2510-2539`
+
+Exit a function with an optional status code:
+
+```bash
+check_file() {
+    if [[ ! -f "$1" ]]; then
+        return 1
+    fi
+    return 0
+}
+
+if check_file "/etc/passwd"; then
+    echo "File exists"
+fi
+```
+
+### Return Values
+
+```bash
+return          # Return with last command's exit status
+return 0        # Success
+return 1        # Failure
+return N        # Return specific status (0-255)
+```
+
+### Context Requirements
+
+`return` is only valid inside:
+- Functions (function_depth > 0)
+- Sourced scripts (source_depth > 0)
+
+Outside these contexts, `return` produces exit status 2.
+
+### Returning Data
+
+Since `return` only provides a numeric status, use other methods for data:
+
+```bash
+# Command substitution
+get_hostname() {
+    hostname -s
+}
+result=$(get_hostname)
+
+# Global variable
+get_hostname() {
+    RESULT=$(hostname -s)
+}
+get_hostname
+echo "$RESULT"
+
+# Nameref (if supported)
+get_hostname() {
+    local -n ref=$1
+    ref=$(hostname -s)
+}
+get_hostname myvar
+echo "$myvar"
+```
+
+## Recursion
+
+Functions can call themselves:
+
+```bash
+factorial() {
+    local n=$1
+    if [[ $n -le 1 ]]; then
+        echo 1
+    else
+        local prev=$(factorial $((n - 1)))
+        echo $((n * prev))
+    fi
+}
+
+factorial 5
+# Output: 120
+```
+
+Note: Deep recursion may hit control stack limits.
+
+## Function Attributes
+
+### Export Functions
+
+Make a function available to child processes:
+
+```bash
+myfunc() {
+    echo "Hello"
+}
+export -f myfunc
+
+bash -c 'myfunc'  # Works in subshell
+```
+
+### List Functions
+
+```bash
+declare -f           # List all functions with bodies
+declare -F           # List function names only
+type myfunc          # Show function definition
+```
+
+### Unset Functions
+
+```bash
+unset -f myfunc
+```
+
+## Common Patterns
+
+### Argument Validation
+
+```bash
+process_file() {
+    if [[ $# -lt 1 ]]; then
+        echo "Usage: process_file <filename>" >&2
+        return 1
+    fi
+
+    local file="$1"
+    if [[ ! -f "$file" ]]; then
+        echo "Error: $file not found" >&2
+        return 1
+    fi
+
+    # Process file...
+}
+```
+
+### Default Arguments
+
+```bash
+greet() {
+    local name="${1:-World}"
+    echo "Hello, $name!"
+}
+
+greet          # Hello, World!
+greet "User"   # Hello, User!
+```
+
+### Error Handling
+
+```bash
+die() {
+    echo "Error: $*" >&2
+    exit 1
+}
+
+[[ -f config ]] || die "Config file not found"
+```
+
+### Cleanup on Exit
+
+```bash
+cleanup() {
+    rm -f "$tmpfile"
+}
+
+main() {
+    trap cleanup EXIT
+    tmpfile=$(mktemp)
+    # Work with tmpfile...
+}
+```
+
+### Option Parsing in Functions
+
+```bash
+create_user() {
+    local name="" shell="/bin/bash" home=""
+
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -n|--name)  name="$2"; shift 2 ;;
+            -s|--shell) shell="$2"; shift 2 ;;
+            -h|--home)  home="$2"; shift 2 ;;
+            *) break ;;
+        esac
+    done
+
+    # Create user with $name, $shell, $home
+}
+
+create_user --name john --shell /bin/zsh
+```
+
+### Library Pattern
+
+```bash
+# lib.sh
+_lib_loaded=1
+
+lib_init() {
+    # Initialize library
+}
+
+lib_cleanup() {
+    # Cleanup
+}
+
+# main.sh
+source lib.sh
+lib_init
+# Use library...
+lib_cleanup
+```

@@ -38,7 +38,7 @@ detect_os() {
             fedora|rhel|centos|rocky|alma)
                 echo "rpm"
                 ;;
-            arch|manjaro|endeavouros)
+            arch|manjaro|endeavouros|cachy)
                 echo "arch"
                 ;;
             debian|ubuntu|linuxmint|pop)

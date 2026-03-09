@@ -1,0 +1,220 @@
+# Special Variables
+
+These variables have special meaning in the shell.
+
+**Source:** `src/scripting/variables.f90`, `src/execution/executor.f90`
+
+## Positional Parameters
+
+| Variable | Description |
+|----------|-------------|
+| `$0` | Script name or shell name |
+| `$1` - `$9` | Positional parameters 1-9 |
+| `${10}` | Positional parameter 10+ (braces required) |
+| `$#` | Number of positional parameters |
+| `$@` | All parameters as separate words |
+| `$*` | All parameters as single word |
+
+### `$@` vs `$*`
+
+```bash
+set -- "arg one" "arg two" "arg three"
+
+# Quoted $@ preserves word boundaries
+for arg in "$@"; do
+    echo "Arg: $arg"
+done
+# Arg: arg one
+# Arg: arg two
+# Arg: arg three
+
+# Quoted $* joins with first char of IFS
+for arg in "$*"; do
+    echo "Arg: $arg"
+done
+# Arg: arg one arg two arg three
+```
+
+### Manipulating Parameters
+
+```bash
+shift                         # Remove $1, shift others down
+shift 3                       # Remove $1-$3
+set -- "new" "args"          # Replace all parameters
+```
+
+## Status Variables
+
+| Variable | Description |
+|----------|-------------|
+| `$?` | Exit status of last command |
+| `$!` | PID of last background command |
+| `$$` | PID of current shell |
+| `$-` | Current shell options |
+| `$_` | Last argument of previous command |
+
+### Exit Status `$?`
+
+```bash
+true
+echo $?                       # 0
+
+false
+echo $?                       # 1
+
+ls /nonexistent 2>/dev/null
+echo $?                       # 2 (or similar)
+```
+
+### Background PID `$!`
+
+```bash
+sleep 100 &
+echo "Started sleep with PID $!"
+kill $!
+```
+
+### Current Shell `$$`
+
+```bash
+echo "This shell's PID: $$"
+echo $$ > /var/run/myscript.pid
+```
+
+### Shell Options `$-`
+
+```bash
+echo $-                       # e.g., "himBHs"
+set -x
+echo $-                       # Now includes 'x'
+```
+
+## Shell Information
+
+| Variable | Description |
+|----------|-------------|
+| `BASH_VERSION` | Shell version string |
+| `FORTSH_VERSION` | fortsh version |
+| `SHELL` | Path to current shell |
+| `SHLVL` | Shell nesting level |
+| `PPID` | Parent process ID |
+| `UID` | User ID |
+| `EUID` | Effective user ID |
+| `HOSTNAME` | System hostname |
+
+```bash
+echo "Running fortsh $FORTSH_VERSION"
+echo "Nested $SHLVL levels deep"
+echo "User ID: $UID"
+```
+
+## Path Variables
+
+| Variable | Description |
+|----------|-------------|
+| `PWD` | Current working directory |
+| `OLDPWD` | Previous directory |
+| `HOME` | Home directory |
+| `PATH` | Command search path |
+| `CDPATH` | cd search path |
+
+```bash
+echo "Current: $PWD"
+echo "Previous: $OLDPWD"
+cd -                          # Goes to $OLDPWD
+```
+
+## Prompt Variables
+
+| Variable | Description |
+|----------|-------------|
+| `PS1` | Primary prompt |
+| `PS2` | Continuation prompt |
+| `PS3` | Select prompt |
+| `PS4` | Debug prompt (with `set -x`) |
+
+### PS1 Escape Sequences
+
+| Escape | Meaning |
+|--------|---------|
+| `\u` | Username |
+| `\h` | Hostname (short) |
+| `\H` | Hostname (full) |
+| `\w` | Current directory |
+| `\W` | Current directory (basename) |
+| `\$` | `#` for root, `$` for others |
+| `\t` | Time (HH:MM:SS) |
+| `\d` | Date |
+| `\n` | Newline |
+
+```bash
+PS1='\u@\h:\w\$ '             # user@host:/path$
+```
+
+## History Variables
+
+| Variable | Description |
+|----------|-------------|
+| `HISTFILE` | History file path |
+| `HISTSIZE` | Max history in memory |
+| `HISTFILESIZE` | Max history in file |
+| `HISTCONTROL` | History behavior |
+
+```bash
+export HISTSIZE=10000
+export HISTCONTROL=ignoredups:erasedups
+```
+
+## IFS (Input Field Separator)
+
+Controls word splitting:
+
+```bash
+IFS=$' \t\n'                  # Default: space, tab, newline
+
+IFS=:
+echo $PATH | tr ':' '\n'      # Split PATH
+
+IFS=$'\n'
+lines=($(cat file))           # Split on newlines only
+```
+
+## Random and Sequences
+
+| Variable | Description |
+|----------|-------------|
+| `RANDOM` | Random number 0-32767 |
+| `LINENO` | Current line number |
+| `SECONDS` | Seconds since shell start |
+
+```bash
+echo $RANDOM                  # e.g., 12345
+echo "Line $LINENO"           # Current line
+echo "Running for $SECONDS seconds"
+```
+
+## Regex Captures
+
+After `[[ string =~ regex ]]`:
+
+| Variable | Description |
+|----------|-------------|
+| `BASH_REMATCH[0]` | Full match |
+| `BASH_REMATCH[1]` | First capture group |
+| `BASH_REMATCH[n]` | Nth capture group |
+
+```bash
+if [[ "v1.2.3" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+    echo "Major: ${BASH_REMATCH[1]}"   # 1
+    echo "Minor: ${BASH_REMATCH[2]}"   # 2
+    echo "Patch: ${BASH_REMATCH[3]}"   # 3
+fi
+```
+
+## Readonly Variables
+
+These cannot be modified:
+
+```bash
+readonly PPID UID EUID HOSTNAME SHELLOPTS FORTSH_VERSION
+```

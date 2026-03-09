@@ -1,0 +1,271 @@
+# Arrays
+
+Indexed arrays store ordered lists of values.
+
+**Source:** `src/scripting/variables.f90`
+
+## Creating Arrays
+
+```bash
+# Explicit declaration
+declare -a myarray
+
+# Assignment (implicit declaration)
+myarray=(one two three)
+
+# Individual elements
+myarray[0]=one
+myarray[1]=two
+myarray[2]=three
+
+# From command output
+files=($(ls *.txt))
+
+# Empty array
+empty=()
+```
+
+## Accessing Elements
+
+```bash
+arr=(zero one two three)
+
+echo ${arr[0]}                # zero
+echo ${arr[2]}                # two
+echo ${arr[-1]}               # three (last element)
+echo ${arr[-2]}               # two (second to last)
+```
+
+## All Elements
+
+```bash
+echo ${arr[@]}                # zero one two three (separate words)
+echo ${arr[*]}                # zero one two three (single word, IFS-joined)
+echo "${arr[@]}"              # Preserves element boundaries
+```
+
+### Iteration
+
+```bash
+for item in "${arr[@]}"; do
+    echo "Item: $item"
+done
+```
+
+## Array Length
+
+```bash
+echo ${#arr[@]}               # Number of elements (4)
+echo ${#arr[0]}               # Length of first element
+```
+
+## Array Indices
+
+```bash
+echo ${!arr[@]}               # 0 1 2 3 (all indices)
+
+for i in "${!arr[@]}"; do
+    echo "arr[$i] = ${arr[$i]}"
+done
+```
+
+## Slicing
+
+```bash
+arr=(a b c d e f)
+
+echo ${arr[@]:2}              # c d e f (from index 2)
+echo ${arr[@]:2:3}            # c d e (3 elements from index 2)
+echo ${arr[@]: -2}            # e f (last 2, note the space)
+```
+
+## Modifying Arrays
+
+### Append elements
+
+```bash
+arr+=(new element)            # Append to end
+arr+=("item with spaces")     # Append preserving spaces
+```
+
+### Replace element
+
+```bash
+arr[1]=replaced
+```
+
+### Delete element
+
+```bash
+unset 'arr[1]'                # Remove index 1 (creates gap)
+```
+
+### Recreate without gaps
+
+```bash
+arr=("${arr[@]}")
+```
+
+## Sparse Arrays
+
+Arrays can have gaps:
+
+```bash
+arr[0]=a
+arr[5]=b
+arr[10]=c
+
+echo ${!arr[@]}               # 0 5 10
+echo ${#arr[@]}               # 3
+```
+
+## Array Operations
+
+### Copy array
+
+```bash
+copy=("${original[@]}")
+```
+
+### Concatenate arrays
+
+```bash
+combined=("${arr1[@]}" "${arr2[@]}")
+```
+
+### Reverse array
+
+```bash
+reversed=()
+for ((i=${#arr[@]}-1; i>=0; i--)); do
+    reversed+=("${arr[$i]}")
+done
+```
+
+### Check if empty
+
+```bash
+if [[ ${#arr[@]} -eq 0 ]]; then
+    echo "Array is empty"
+fi
+```
+
+### Check if index exists
+
+```bash
+if [[ -v arr[5] ]]; then
+    echo "Index 5 exists"
+fi
+```
+
+## Arrays and IFS
+
+```bash
+# Default IFS: space, tab, newline
+text="one two three"
+arr=($text)                   # arr = (one two three)
+
+# Custom IFS
+IFS=:
+path_arr=($PATH)              # Split PATH on colons
+unset IFS                     # Restore default
+```
+
+## Arrays in Functions
+
+```bash
+myfunc() {
+    local -a arr=("$@")       # Copy arguments to local array
+    echo "Received ${#arr[@]} items"
+}
+
+myfunc "one" "two" "three"
+```
+
+### Passing array to function
+
+```bash
+process_array() {
+    local arr=("$@")
+    for item in "${arr[@]}"; do
+        echo "Processing: $item"
+    done
+}
+
+myarr=(a b c)
+process_array "${myarr[@]}"   # Expand array as arguments
+```
+
+## Pattern Operations
+
+```bash
+arr=(file1.txt file2.txt file3.log)
+
+# Remove suffix from all elements
+echo "${arr[@]%.txt}"         # file1 file2 file3.log
+
+# Replace in all elements
+echo "${arr[@]/file/doc}"     # doc1.txt doc2.txt doc3.log
+```
+
+## Readarray / Mapfile
+
+Read lines into array:
+
+```bash
+# Read file into array
+mapfile -t lines < file.txt
+
+# Or using read loop
+while IFS= read -r line; do
+    lines+=("$line")
+done < file.txt
+```
+
+## Common Patterns
+
+### Find in array
+
+```bash
+contains() {
+    local needle="$1"
+    shift
+    for item; do
+        [[ "$item" == "$needle" ]] && return 0
+    done
+    return 1
+}
+
+arr=(apple banana cherry)
+if contains "banana" "${arr[@]}"; then
+    echo "Found"
+fi
+```
+
+### Join array elements
+
+```bash
+join_by() {
+    local IFS="$1"
+    shift
+    echo "$*"
+}
+
+arr=(a b c)
+join_by ',' "${arr[@]}"       # a,b,c
+```
+
+### Remove duplicates
+
+```bash
+arr=(a b a c b d)
+declare -A seen
+unique=()
+for item in "${arr[@]}"; do
+    if [[ ! -v seen[$item] ]]; then
+        seen[$item]=1
+        unique+=("$item")
+    fi
+done
+# unique = (a b c d)
+```

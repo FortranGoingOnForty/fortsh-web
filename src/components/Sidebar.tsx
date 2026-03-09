@@ -92,28 +92,44 @@ const navigation: NavItem[] = [
   },
 ];
 
-function NavLink({ item, depth = 0 }: { item: NavItem; depth?: number }) {
+function NavSection({ item }: { item: NavItem }) {
   const pathname = usePathname();
   const isActive = pathname === item.href;
-  const isParentActive = pathname.startsWith(item.href + "/");
+  const isChildActive = item.children?.some(
+    (child) => pathname === child.href || pathname.startsWith(child.href + "/")
+  );
 
   return (
-    <li>
+    <li className="mb-4">
       <Link
         href={item.href}
-        className={`block py-1.5 px-3 rounded-md text-sm transition-colors ${
+        className={`block text-sm font-semibold mb-2 ${
           isActive
-            ? "bg-surface-200 dark:bg-surface-700 text-surface-900 dark:text-surface-100 font-medium"
-            : "text-surface-600 dark:text-surface-400 hover:text-surface-900 dark:hover:text-surface-100 hover:bg-surface-100 dark:hover:bg-surface-800"
-        } ${depth > 0 ? "ml-4" : ""}`}
+            ? "text-surface-900 dark:text-surface-100"
+            : "text-surface-700 dark:text-surface-300 hover:text-surface-900 dark:hover:text-surface-100"
+        }`}
       >
         {item.title}
       </Link>
-      {item.children && (isActive || isParentActive) && (
-        <ul className="mt-1 space-y-1">
-          {item.children.map((child) => (
-            <NavLink key={child.href} item={child} depth={depth + 1} />
-          ))}
+      {item.children && (
+        <ul className="space-y-1 border-l border-surface-200 dark:border-surface-700 ml-1">
+          {item.children.map((child) => {
+            const childActive = pathname === child.href;
+            return (
+              <li key={child.href}>
+                <Link
+                  href={child.href}
+                  className={`block py-1 pl-4 text-sm border-l -ml-px transition-colors ${
+                    childActive
+                      ? "border-surface-900 dark:border-surface-100 text-surface-900 dark:text-surface-100 font-medium"
+                      : "border-transparent text-surface-500 dark:text-surface-400 hover:text-surface-900 dark:hover:text-surface-100 hover:border-surface-400"
+                  }`}
+                >
+                  {child.title}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       )}
     </li>
@@ -122,8 +138,8 @@ function NavLink({ item, depth = 0 }: { item: NavItem; depth?: number }) {
 
 export default function Sidebar() {
   return (
-    <nav className="w-64 shrink-0 border-r border-surface-200 dark:border-surface-800 h-screen sticky top-0 overflow-y-auto p-4">
-      <div className="mb-6">
+    <nav className="w-64 shrink-0 border-r border-surface-200 dark:border-surface-800 h-screen sticky top-0 overflow-y-auto p-6">
+      <div className="mb-8">
         <Link
           href="/"
           className="text-lg font-bold text-surface-900 dark:text-surface-100"
@@ -132,9 +148,9 @@ export default function Sidebar() {
         </Link>
         <span className="text-xs text-surface-500 ml-2">docs</span>
       </div>
-      <ul className="space-y-1">
+      <ul>
         {navigation.map((item) => (
-          <NavLink key={item.href} item={item} />
+          <NavSection key={item.href} item={item} />
         ))}
       </ul>
     </nav>

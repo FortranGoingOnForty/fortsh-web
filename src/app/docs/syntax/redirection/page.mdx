@@ -1,0 +1,220 @@
+# Redirection
+
+Redirection connects command input/output to files and file descriptors.
+
+**Source:** `src/io/fd_redirection.f90`, `src/execution/executor.f90`
+
+## Output Redirection
+
+### Redirect stdout
+
+```bash
+command > file        # Write stdout to file (truncate)
+command >> file       # Append stdout to file
+command 1> file       # Explicit stdout (same as >)
+command 1>> file      # Explicit append
+```
+
+### Redirect stderr
+
+```bash
+command 2> file       # Write stderr to file
+command 2>> file      # Append stderr to file
+```
+
+### Redirect both
+
+```bash
+command &> file       # Both stdout and stderr to file
+command &>> file      # Append both
+command > file 2>&1   # Redirect stdout, then stderr to stdout
+command 2>&1 > file   # Wrong order! stderr goes to original stdout
+```
+
+### Discard output
+
+```bash
+command > /dev/null           # Discard stdout
+command 2> /dev/null          # Discard stderr
+command &> /dev/null          # Discard both
+command > /dev/null 2>&1      # Discard both (portable)
+```
+
+## Input Redirection
+
+### From file
+
+```bash
+command < file        # Read stdin from file
+command 0< file       # Explicit stdin
+```
+
+### Here-document
+
+```bash
+command << DELIMITER
+content
+more content
+DELIMITER
+```
+
+See [Heredocs](/docs/syntax/heredocs) for details.
+
+### Here-string
+
+```bash
+command <<< "string"
+```
+
+```bash
+grep pattern <<< "$variable"
+read first rest <<< "one two three"
+```
+
+## File Descriptor Operations
+
+### Duplicate descriptors
+
+```bash
+command 2>&1          # stderr to stdout
+command 1>&2          # stdout to stderr
+command >&2           # stdout to stderr (shorthand)
+```
+
+### Close descriptors
+
+```bash
+command 2>&-          # Close stderr
+command <&-           # Close stdin
+```
+
+### Open file on descriptor
+
+```bash
+exec 3> file          # Open fd 3 for writing
+echo "data" >&3       # Write to fd 3
+exec 3>&-             # Close fd 3
+
+exec 4< file          # Open fd 4 for reading
+read line <&4         # Read from fd 4
+exec 4<&-             # Close fd 4
+```
+
+### Read and write
+
+```bash
+exec 3<> file         # Open fd 3 for read/write
+```
+
+## Noclobber
+
+With `set -C` (noclobber), `>` fails if file exists:
+
+```bash
+set -C                # Enable noclobber
+echo "data" > file    # Fails if file exists
+echo "data" >| file   # Force overwrite anyway
+```
+
+## Redirection Order
+
+Redirections are processed left to right:
+
+```bash
+# stderr to stdout, then stdout to file
+command > file 2>&1   # Both go to file
+
+# stdout to file, then stderr to original stdout
+command 2>&1 > file   # Only stdout to file, stderr to terminal
+```
+
+## Combining with Pipes
+
+```bash
+command 2>&1 | grep pattern    # Grep both stdout and stderr
+command |& grep pattern        # Same (bash shorthand)
+```
+
+## Examples
+
+### Log both stdout and stderr
+
+```bash
+./script.sh > output.log 2>&1
+./script.sh &> output.log      # Same
+```
+
+### Separate stdout and stderr
+
+```bash
+./script.sh > stdout.log 2> stderr.log
+```
+
+### Append to log
+
+```bash
+echo "$(date): Event" >> app.log
+```
+
+### Process substitution
+
+```bash
+diff <(cmd1) <(cmd2)           # Compare outputs
+tee >(process) < input         # Send to process and stdout
+```
+
+See [Pipes](/docs/syntax/pipes) for process substitution details.
+
+### Safe file overwrite
+
+```bash
+# Read and write same file
+{ rm file && cmd > file; } < file
+```
+
+### Redirect within function
+
+```bash
+log() {
+    echo "[$(date)] $*" >> /var/log/app.log
+}
+```
+
+## Built-in exec
+
+`exec` with no command makes redirections permanent:
+
+```bash
+exec > output.log     # All subsequent stdout goes to file
+exec 2>&1             # stderr follows stdout
+
+echo "This goes to output.log"
+echo "So does this" >&2
+```
+
+To restore:
+
+```bash
+exec 3>&1             # Save stdout to fd 3
+exec > output.log     # Redirect stdout
+# ... commands ...
+exec 1>&3             # Restore stdout
+exec 3>&-             # Close fd 3
+```
+
+## File Descriptor Limits
+
+Standard descriptors:
+- 0: stdin
+- 1: stdout
+- 2: stderr
+- 3-9: Available for user scripts
+
+## Return Values
+
+Redirection errors (file not found, permission denied) cause the command to fail with non-zero exit status. The error message is printed to stderr.
+
+```bash
+cat < nonexistent     # Error: No such file
+echo "hi" > /readonly # Error: Permission denied
+```

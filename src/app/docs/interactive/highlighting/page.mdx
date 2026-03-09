@@ -1,0 +1,259 @@
+# Syntax Highlighting
+
+fortsh provides real-time syntax highlighting as you type, similar to fish shell.
+
+**Source:** `src/io/syntax_highlight.f90`
+
+## Overview
+
+Commands are colored in real-time to indicate:
+
+- **Valid commands** - Green
+- **Invalid commands** - Red
+- **Options/flags** - Blue
+- **Strings** - Yellow
+- **Variables** - Magenta
+- **Comments** - Gray
+- **Operators** - Cyan
+- **Paths** - Light blue
+
+## Color Scheme
+
+| Token Type | Color | ANSI Code |
+|------------|-------|-----------|
+| Valid command | Green | 32 |
+| Invalid command | Red | 31 |
+| Options (`-flag`) | Blue | 34 |
+| Strings (`"..."`, `'...'`) | Yellow | 33 |
+| Variables (`$var`) | Magenta | 35 |
+| Comments (`#...`) | Bright Black | 90 |
+| Operators (`\|`, `&`, `;`) | Cyan | 36 |
+| Numbers | Cyan | 36 |
+| Paths (`/...`) | Bright Blue | 94 |
+
+**Source:** syntax_highlight.f90:54-62
+
+## Command Validation
+
+As you type, fortsh checks whether commands exist:
+
+```bash
+ls        # Green - valid command
+ks        # Red - no such command
+./script  # Green if executable, red otherwise
+```
+
+### Validation Process
+
+1. Check if command is a shell builtin
+2. Search PATH for executable
+3. Check if path exists and is executable
+
+**Source:** syntax_highlight.f90:782-899
+
+### Validation Cache
+
+To avoid repeated filesystem lookups, fortsh caches command validation results:
+
+```fortran
+type :: cache_entry_t
+  character(len=256) :: command = ''
+  logical :: is_valid = .false.
+  integer :: timestamp = 0
+end type
+```
+
+**Source:** syntax_highlight.f90:72-81
+
+Cache size: 256 entries
+
+## Token Types
+
+**Source:** syntax_highlight.f90:43-51
+
+```fortran
+TOKEN_COMMAND = 1    ! Valid/invalid command
+TOKEN_OPTION = 2     ! Flags starting with -
+TOKEN_STRING = 3     ! Quoted strings
+TOKEN_VARIABLE = 4   ! $ variables
+TOKEN_COMMENT = 5    ! # comments
+TOKEN_OPERATOR = 6   ! |, &, >, <, ;
+TOKEN_NUMBER = 7     ! Numeric values
+TOKEN_PATH = 8       ! Paths with /
+```
+
+## Highlighting Rules
+
+### Commands
+
+The first word of a command is checked for validity:
+
+```bash
+echo hello      # "echo" highlighted as valid command
+git status      # "git" highlighted as valid command
+```
+
+After pipes and semicolons, the next word is also treated as a command:
+
+```bash
+ls | grep foo   # Both "ls" and "grep" highlighted
+```
+
+### Options
+
+Words starting with `-` are highlighted as options:
+
+```bash
+ls -la --color=auto
+   ^^^ ^^^^^^^^^^^^ Blue
+```
+
+### Strings
+
+Both quote styles are highlighted:
+
+```bash
+echo "double quoted"  # Yellow
+echo 'single quoted'  # Yellow
+```
+
+Strings span until the closing quote, including across escape sequences.
+
+### Variables
+
+Variables are highlighted in magenta:
+
+```bash
+echo $HOME              # $HOME in magenta
+echo ${PATH}            # ${PATH} in magenta
+echo "$USER is $(whoami)"
+     ^^^^^     ^^^^^^^  # Variables highlighted
+```
+
+### Comments
+
+From `#` to end of line:
+
+```bash
+ls  # list files
+    ^^^^^^^^^^^^ Gray
+```
+
+### Operators
+
+Shell operators are highlighted in cyan:
+
+```bash
+ls && echo done
+   ^^          ^^ Cyan
+
+cat file | grep pattern > output
+         ^             ^        Cyan
+```
+
+## Implementation
+
+### Main Function
+
+**Source:** syntax_highlight.f90:170-254
+
+```fortran
+subroutine highlight_command_line(input, output, shell)
+  ! 1. Tokenize input
+  ! 2. Determine token types
+  ! 3. Apply colors
+  ! 4. Build output with ANSI codes
+end subroutine
+```
+
+### Tokenization
+
+**Source:** syntax_highlight.f90:294-431
+
+The tokenizer handles:
+- Quoted strings (preserving quotes)
+- Comments (# to end of line)
+- Operators (as single tokens)
+- Whitespace separation
+
+### Color Code Generation
+
+**Source:** syntax_highlight.f90:919-929
+
+```fortran
+function color_code(color) result(code)
+  ! Returns ANSI escape sequence: ESC[{color}m
+end function
+```
+
+## Configuration
+
+### Disable Highlighting
+
+For scripts or testing:
+
+```bash
+export FORTSH_NO_HIGHLIGHT=1
+```
+
+### Terminal Compatibility
+
+Highlighting is automatically disabled on:
+- Dumb terminals (`TERM=dumb`)
+- Test mode (`FORTSH_TEST_MODE=1`)
+
+**Source:** syntax_highlight.f90:93-128
+
+## Performance
+
+### Incremental Updates
+
+When editing, fortsh uses incremental highlighting for single character changes:
+
+```fortran
+subroutine highlight_single_char(ch, context, output)
+  ! Context-aware single character highlighting
+end subroutine
+```
+
+**Source:** syntax_highlight.f90:258-291
+
+### Caching
+
+- Command validity is cached (256 entries)
+- Cache entries have timestamps for freshness
+- Invalid cache entries are revalidated
+
+## Builtin Recognition
+
+**Source:** syntax_highlight.f90:820-842
+
+These commands are recognized as valid without PATH lookup:
+
+```
+cd, echo, pwd, exit, export, unset, source, alias, unalias,
+type, test, read, declare, local, readonly, return, break,
+continue, shift, set, true, false, history, jobs, fg, bg,
+wait, kill, trap, eval, exec, hash, command, builtin,
+complete, compgen, printf, getopts, pushd, popd, dirs
+```
+
+## Troubleshooting
+
+### Colors Not Showing
+
+1. Check terminal supports colors: `echo $TERM`
+2. Verify not in test mode: `unset FORTSH_TEST_MODE`
+3. Check highlighting not disabled: `unset FORTSH_NO_HIGHLIGHT`
+
+### Wrong Colors
+
+- Some terminals map colors differently
+- Try a modern terminal emulator (kitty, alacritty, iTerm2)
+
+### Performance Issues
+
+If highlighting causes lag:
+- Check disk speed (PATH searches hit filesystem)
+- Reduce PATH length
+- Commands in cache are fast; first use may be slow

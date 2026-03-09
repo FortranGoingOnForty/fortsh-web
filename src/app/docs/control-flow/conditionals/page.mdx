@@ -1,0 +1,283 @@
+# Conditionals
+
+Conditional execution based on command exit status or test expressions.
+
+**Source:** `src/scripting/control_flow.f90:129-272`, `src/ast/evaluator_simple_real.f90:2349-2495`
+
+## If Statements
+
+### Basic Syntax
+
+```bash
+if condition; then
+    commands
+fi
+```
+
+### With Elif and Else
+
+```bash
+if condition1; then
+    commands
+elif condition2; then
+    commands
+else
+    commands
+fi
+```
+
+### Condition Types
+
+Conditions can be:
+
+1. **Test expressions** - `[ ... ]` or `[[ ... ]]`
+2. **Commands** - exit status 0 = true, non-zero = false
+
+```bash
+# Test expression
+if [[ -f "$file" ]]; then
+    echo "File exists"
+fi
+
+# Command as condition
+if grep -q "pattern" file.txt; then
+    echo "Found"
+fi
+
+# Negated condition
+if ! command; then
+    echo "Command failed"
+fi
+```
+
+### Evaluation
+
+The condition is evaluated by `evaluate_condition()` (control_flow.f90:25). When the condition evaluates to true (exit status 0), the then-block executes. Otherwise, elif conditions are checked in order until one matches, or the else-block executes.
+
+```bash
+# Multiple conditions
+if [[ $x -gt 10 ]]; then
+    echo "x > 10"
+elif [[ $x -gt 5 ]]; then
+    echo "5 < x <= 10"
+elif [[ $x -gt 0 ]]; then
+    echo "0 < x <= 5"
+else
+    echo "x <= 0"
+fi
+```
+
+### One-Liners
+
+```bash
+# Compact form
+if [[ $debug ]]; then echo "Debug on"; fi
+
+# Using && and ||
+[[ -f file ]] && echo "exists" || echo "missing"
+```
+
+## Case Statements
+
+Pattern-based branching with glob matching.
+
+**Source:** `src/scripting/control_flow.f90:1221-1419`
+
+### Basic Syntax
+
+```bash
+case word in
+    pattern1) commands ;;
+    pattern2) commands ;;
+esac
+```
+
+### Multiple Patterns
+
+Use `|` to match multiple patterns:
+
+```bash
+case $answer in
+    y|Y|yes|Yes|YES)
+        echo "Affirmative"
+        ;;
+    n|N|no|No|NO)
+        echo "Negative"
+        ;;
+    *)
+        echo "Unknown: $answer"
+        ;;
+esac
+```
+
+### Glob Patterns
+
+Case patterns support full glob syntax:
+
+```bash
+case $file in
+    *.txt)
+        echo "Text file"
+        ;;
+    *.sh)
+        echo "Shell script"
+        ;;
+    [0-9]*)
+        echo "Starts with digit"
+        ;;
+    ???)
+        echo "Three characters"
+        ;;
+    *)
+        echo "Other"
+        ;;
+esac
+```
+
+### Character Classes
+
+```bash
+case $char in
+    [[:alpha:]])
+        echo "Letter"
+        ;;
+    [[:digit:]])
+        echo "Digit"
+        ;;
+    [[:space:]])
+        echo "Whitespace"
+        ;;
+esac
+```
+
+### First Match Wins
+
+Once a pattern matches, subsequent patterns are skipped:
+
+```bash
+case "abc" in
+    a*)   echo "Matches a*" ;;    # This matches
+    abc)  echo "Matches abc" ;;   # Never reached
+esac
+```
+
+### Exit Status
+
+- Returns exit status of last executed command
+- Returns 0 if no pattern matched
+
+### Pattern Matching Details
+
+Pattern matching uses `pattern_matches_no_dotfile_check()` from the glob module. Multi-pattern matching is handled by `check_multi_pattern()` (control_flow.f90:1376), which splits on `|` and checks each pattern.
+
+## Combining Conditions
+
+### Logical AND
+
+```bash
+if [[ -f "$file" ]] && [[ -r "$file" ]]; then
+    echo "File exists and is readable"
+fi
+
+# Or within [[ ]]
+if [[ -f "$file" && -r "$file" ]]; then
+    echo "File exists and is readable"
+fi
+```
+
+### Logical OR
+
+```bash
+if [[ -z "$var" ]] || [[ "$var" == "default" ]]; then
+    var="fallback"
+fi
+```
+
+### Negation
+
+```bash
+if ! [[ -d "$dir" ]]; then
+    mkdir "$dir"
+fi
+
+# Within [[ ]]
+if [[ ! -d "$dir" ]]; then
+    mkdir "$dir"
+fi
+```
+
+## Nested Conditionals
+
+```bash
+if [[ -d "$path" ]]; then
+    if [[ -w "$path" ]]; then
+        echo "Writable directory"
+    else
+        echo "Read-only directory"
+    fi
+elif [[ -f "$path" ]]; then
+    echo "It's a file, not a directory"
+else
+    echo "Path doesn't exist"
+fi
+```
+
+## Common Patterns
+
+### Default Values
+
+```bash
+if [[ -z "$CONFIG" ]]; then
+    CONFIG="/etc/myapp/config"
+fi
+
+# Or more concisely
+: "${CONFIG:=/etc/myapp/config}"
+```
+
+### File Type Dispatch
+
+```bash
+case $(file -b --mime-type "$1") in
+    text/*)
+        cat "$1"
+        ;;
+    image/*)
+        display "$1"
+        ;;
+    application/pdf)
+        evince "$1"
+        ;;
+    *)
+        echo "Unknown type"
+        ;;
+esac
+```
+
+### Option Parsing
+
+```bash
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -v|--verbose)
+            verbose=1
+            shift
+            ;;
+        -o|--output)
+            output="$2"
+            shift 2
+            ;;
+        --)
+            shift
+            break
+            ;;
+        -*)
+            echo "Unknown option: $1" >&2
+            exit 1
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
+```

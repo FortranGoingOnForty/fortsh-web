@@ -1,0 +1,87 @@
+# Control Flow
+
+Control flow statements direct execution based on conditions and iteration.
+
+**Source:** `src/scripting/control_flow.f90`, `src/ast/evaluator_simple_real.f90`
+
+## Overview
+
+fortsh supports all standard shell control flow constructs:
+
+- **[Conditionals](/docs/control-flow/conditionals)** - `if`/`elif`/`else`/`fi` and `case`/`esac`
+- **[Loops](/docs/control-flow/loops)** - `for`, `while`, `until`
+- **[Functions](/docs/control-flow/functions)** - Named command groups with local scope
+
+## Quick Reference
+
+### Conditionals
+
+```bash
+if [[ $x -gt 0 ]]; then
+    echo "positive"
+elif [[ $x -lt 0 ]]; then
+    echo "negative"
+else
+    echo "zero"
+fi
+```
+
+### Case Statements
+
+```bash
+case $input in
+    y|yes) echo "Confirmed" ;;
+    n|no)  echo "Cancelled" ;;
+    *)     echo "Unknown" ;;
+esac
+```
+
+### Loops
+
+```bash
+# Word list
+for file in *.txt; do
+    echo "$file"
+done
+
+# C-style arithmetic
+for ((i=0; i<10; i++)); do
+    echo $i
+done
+
+# While
+while read line; do
+    echo "$line"
+done < file.txt
+```
+
+### Functions
+
+```bash
+greet() {
+    local name="$1"
+    echo "Hello, $name"
+}
+
+greet "World"
+```
+
+## Exit Status
+
+Control flow keywords (`if`, `while`, `done`, etc.) reset the exit status to 0 after condition evaluation, per POSIX specification.
+
+The exit status of:
+- `if`/`elif`/`else`/`fi` - status of last executed command
+- `case`/`esac` - status of last executed command, or 0 if no pattern matched
+- `for`/`while`/`until` - status of last executed command, or 0 if body never executed
+- Functions - status of last command or explicit `return` value
+
+## Operators
+
+| Operator | Description |
+|----------|-------------|
+| `&&` | Execute next if previous succeeded |
+| `\|\|` | Execute next if previous failed |
+| `!` | Negate exit status |
+| `;` | Sequential execution |
+| `&` | Background execution |

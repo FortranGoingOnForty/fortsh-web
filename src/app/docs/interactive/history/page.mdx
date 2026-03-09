@@ -1,0 +1,270 @@
+# History
+
+fortsh maintains a persistent history of commands across sessions.
+
+**Source:** `src/io/readline.f90:1601-2027`
+
+## History Navigation
+
+### Arrow Keys
+
+- `Up` - Previous command
+- `Down` - Next command
+
+### Emacs Mode
+
+- `Ctrl+P` - Previous command
+- `Ctrl+N` - Next command
+- `Alt+<` - First history entry
+- `Alt+>` - Last history entry (current input)
+
+### Vi Mode
+
+In command mode:
+- `k` - Previous command
+- `j` - Next command
+
+## History Search
+
+### Incremental Search
+
+Search history interactively:
+
+- `Ctrl+R` - Reverse incremental search
+- `Ctrl+S` - Forward incremental search
+
+```
+(reverse-i-search)`git': git commit -m "last commit message"
+```
+
+Type characters to filter. Press `Ctrl+R` again for next match.
+
+### Prefix Search
+
+Type the beginning of a command and press Up:
+
+```bash
+git<Up>    # Finds last command starting with "git"
+```
+
+## History Expansion
+
+Recall and modify previous commands:
+
+### Event Designators
+
+| Syntax | Meaning |
+|--------|---------|
+| `!!` | Last command |
+| `!n` | Command number n |
+| `!-n` | n commands back |
+| `!string` | Last command starting with string |
+| `!?string?` | Last command containing string |
+
+```bash
+echo "Hello"
+!!              # Repeats: echo "Hello"
+
+ls /usr
+!ls             # Last ls command: ls /usr
+
+!-2             # Two commands back
+```
+
+### Word Designators
+
+| Syntax | Meaning |
+|--------|---------|
+| `!$` | Last argument of previous command |
+| `!^` | First argument of previous command |
+| `!*` | All arguments of previous command |
+| `!:n` | Argument n (0 = command) |
+| `!:n-m` | Arguments n through m |
+
+```bash
+echo one two three
+echo !$         # three
+echo !^         # one
+echo !*         # one two three
+echo !:2        # two
+```
+
+### Modifiers
+
+| Syntax | Meaning |
+|--------|---------|
+| `:h` | Remove trailing pathname component |
+| `:t` | Remove leading pathname components |
+| `:r` | Remove suffix |
+| `:e` | Keep only suffix |
+| `:p` | Print without executing |
+| `:s/old/new/` | Substitute |
+
+```bash
+echo /path/to/file.txt
+echo !$:t       # file.txt
+echo !$:h       # /path/to
+echo !$:r       # /path/to/file
+echo !$:e       # .txt
+```
+
+### Quick Substitution
+
+```bash
+^old^new        # Replace 'old' with 'new' in last command
+```
+
+```bash
+echo hello
+^hello^goodbye  # echo goodbye
+```
+
+## History Commands
+
+### View History
+
+```bash
+history          # Show all history
+history 10       # Show last 10 commands
+history | grep git   # Search history
+```
+
+### History Options
+
+```bash
+history -c       # Clear history
+history -d N     # Delete entry N
+history -a       # Append to file
+history -r       # Read from file
+history -w       # Write to file
+```
+
+## Configuration
+
+### HISTFILE
+
+Location of history file:
+
+```bash
+export HISTFILE="$HOME/.fortsh_history"
+```
+
+Default: `~/.fortsh_history`
+
+### HISTSIZE
+
+Maximum entries in memory:
+
+```bash
+export HISTSIZE=10000
+```
+
+### HISTFILESIZE
+
+Maximum lines in history file:
+
+```bash
+export HISTFILESIZE=20000
+```
+
+### HISTCONTROL
+
+Control history recording:
+
+```bash
+export HISTCONTROL=ignoredups:erasedups
+```
+
+Options:
+- `ignorespace` - Ignore commands starting with space
+- `ignoredups` - Ignore duplicate consecutive commands
+- `erasedups` - Remove all previous duplicates
+- `ignoreboth` - `ignorespace` + `ignoredups`
+
+### HISTIGNORE
+
+Patterns to exclude from history:
+
+```bash
+export HISTIGNORE="ls:cd:pwd:exit"
+export HISTIGNORE="ls*:cd*:pwd"   # With wildcards
+```
+
+### HISTTIMEFORMAT
+
+Add timestamps to history display:
+
+```bash
+export HISTTIMEFORMAT="%F %T "
+history
+# 1  2024-01-15 10:30:00 git status
+# 2  2024-01-15 10:30:05 git commit
+```
+
+## Implementation Details
+
+### History Storage
+
+**Source:** readline.f90:203-212
+
+```fortran
+type :: history_t
+  character(len=MAX_LINE_LEN), allocatable :: lines(:)
+  integer :: count = 0
+  integer :: current = 0
+  logical :: initialized = .false.
+end type
+```
+
+### Core Functions
+
+| Function | Source | Description |
+|----------|--------|-------------|
+| `add_to_history` | readline.f90:1601 | Add entry |
+| `add_to_history_with_control` | readline.f90:1608 | Add with HISTCONTROL |
+| `show_history` | readline.f90:1705 | Display entries |
+| `clear_history` | readline.f90:1718 | Clear all entries |
+| `save_history_to_file` | readline.f90:1724 | Save to HISTFILE |
+| `load_history_from_file` | readline.f90:1756 | Load from HISTFILE |
+| `append_history_to_file` | readline.f90:1803 | Append new entries |
+
+### History Expansion
+
+The `expand_history` function (readline.f90:1828) processes expansion syntax:
+
+1. `needs_history_expansion` (line 1994) - Check for `!` characters
+2. `find_history_expansion_end` (line 1886) - Find token boundaries
+3. `process_history_expansion` (line 1932) - Lookup and substitute
+
+## Tips
+
+### Avoid Recording Sensitive Commands
+
+Prefix with a space (if `ignorespace` is set):
+
+```bash
+ export SECRET_KEY="..."   # Not saved (note leading space)
+```
+
+### Search and Execute
+
+```bash
+!?keyword?       # Run last command containing "keyword"
+```
+
+### Print Before Executing
+
+```bash
+!!:p            # Print last command without running
+!git:p          # Print last git command
+```
+
+### Reuse Arguments
+
+```bash
+mkdir /long/path/to/directory
+cd !$           # cd /long/path/to/directory
+
+cp file1.txt file2.txt /backup
+ls !:2          # ls file2.txt
+```

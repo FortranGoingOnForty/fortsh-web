@@ -1,0 +1,296 @@
+# Tab Completion
+
+fortsh provides intelligent tab completion for commands, files, and custom completions.
+
+**Source:** `src/scripting/completion.f90`, `src/io/readline.f90:2757-2868`
+
+## Basic Completion
+
+Press `Tab` to complete:
+
+```bash
+gi<Tab>         # → git (command)
+/ho<Tab>        # → /home/ (path)
+$HO<Tab>        # → $HOME (variable)
+```
+
+### Multiple Matches
+
+When multiple matches exist:
+
+- Single `Tab`: Complete common prefix
+- Double `Tab`: List all matches
+
+```bash
+git co<Tab>      # Lists: commit  config  ...
+git com<Tab>     # → git commit
+```
+
+## Completion Types
+
+### Commands
+
+Complete executables in PATH and builtins:
+
+```bash
+sys<Tab>        # systemctl, sysctl, ...
+```
+
+### Files and Directories
+
+Complete paths:
+
+```bash
+cat /etc/pas<Tab>    # → cat /etc/passwd
+cd ~/Doc<Tab>        # → cd ~/Documents/
+```
+
+### Variables
+
+Complete shell and environment variables:
+
+```bash
+echo $PA<Tab>   # → echo $PATH
+echo ${HO<Tab>  # → echo ${HOME
+```
+
+### Users and Groups
+
+```bash
+chown us<Tab>:  # → chown user:
+```
+
+## Programmable Completion
+
+Define custom completions for specific commands.
+
+### complete Builtin
+
+**Source:** completion.f90:24-53
+
+```bash
+complete [options] command
+```
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `-F func` | Use function for completions |
+| `-W words` | Complete from word list |
+| `-A action` | Use built-in action |
+| `-X pattern` | Filter out matches |
+| `-P prefix` | Add prefix to completions |
+| `-S suffix` | Add suffix to completions |
+| `-o option` | Modify behavior |
+
+### Word List Completion (-W)
+
+```bash
+complete -W "start stop restart status" systemctl
+systemctl st<Tab>    # start stop status
+```
+
+### Function Completion (-F)
+
+```bash
+_git_complete() {
+    local cur="${COMP_WORDS[COMP_CWORD]}"
+    case "${COMP_WORDS[1]}" in
+        commit) COMPREPLY=($(compgen -W "-m -a --amend" -- "$cur")) ;;
+        branch) COMPREPLY=($(compgen -W "-d -D -m -M" -- "$cur")) ;;
+        *) COMPREPLY=($(compgen -W "add commit push pull branch" -- "$cur")) ;;
+    esac
+}
+complete -F _git_complete git
+```
+
+### Built-in Actions (-A)
+
+| Action | Completes |
+|--------|-----------|
+| `alias` | Alias names |
+| `builtin` | Builtin commands |
+| `command` | Commands (PATH + builtins) |
+| `directory` | Directories only |
+| `file` | Files and directories |
+| `function` | Shell functions |
+| `hostname` | Hostnames |
+| `variable` | Shell variables |
+| `user` | Usernames |
+| `group` | Group names |
+| `keyword` | Shell keywords |
+
+```bash
+complete -A directory cd
+complete -A file cat
+complete -A variable export
+```
+
+### Options (-o)
+
+| Option | Effect |
+|--------|--------|
+| `default` | Fall back to default completion |
+| `dirnames` | Complete directories when no matches |
+| `filenames` | Quote filenames with spaces |
+| `nospace` | Don't add space after completion |
+| `nosort` | Don't sort completions |
+
+```bash
+complete -o nospace -W "http:// https:// ftp://" curl
+```
+
+### Filter Pattern (-X)
+
+Remove matches:
+
+```bash
+# Complete files except .o and .a
+complete -f -X '*.@(o|a)' gcc
+```
+
+## Completion Variables
+
+When a completion function runs, these variables are set:
+
+| Variable | Description |
+|----------|-------------|
+| `COMP_LINE` | Current command line |
+| `COMP_POINT` | Cursor position |
+| `COMP_WORDS` | Array of words on line |
+| `COMP_CWORD` | Index of current word |
+| `COMPREPLY` | Array to fill with completions |
+
+**Source:** completion.f90:475-506
+
+## compgen Builtin
+
+Generate completions without installing them:
+
+```bash
+compgen -W "one two three" -- o    # one
+compgen -A command -- gi           # git, gist, ...
+compgen -d /usr/                   # /usr/bin, /usr/lib, ...
+```
+
+## Managing Completions
+
+### List Completions
+
+```bash
+complete -p            # Show all completions
+complete -p git        # Show git completion
+```
+
+### Remove Completion
+
+```bash
+complete -r git        # Remove git completion
+complete -r            # Remove all completions
+```
+
+## Implementation Details
+
+### Completion Spec Type
+
+**Source:** completion.f90:24-53
+
+```fortran
+type :: completion_spec_t
+  character(len=256) :: command
+  character(len=256) :: word_list(50)
+  character(len=256) :: function_name
+  character(len=256) :: filter_pattern
+  character(len=256) :: prefix, suffix
+  logical :: use_default
+  logical :: use_dirnames, use_filenames
+  logical :: nospace, nosort
+  ! Built-in completers
+  logical :: builtin_alias, builtin_command
+  logical :: builtin_directory, builtin_file
+  ! ... and more
+end type
+```
+
+### Generation Pipeline
+
+**Source:** completion.f90:757-826
+
+1. Check for function-based completion
+2. Try word list completion
+3. Apply built-in completers
+4. Filter and sort results
+
+### Enhanced Tab Completion
+
+**Source:** readline.f90:2757-2868
+
+```fortran
+subroutine enhanced_tab_complete(state, shell)
+  ! Detects command position
+  ! Integrates with completion specs
+  ! Falls back to default completion
+end subroutine
+```
+
+## Writing Completion Functions
+
+### Template
+
+```bash
+_mycommand_complete() {
+    local cur prev words cword
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+
+    case "$prev" in
+        -f|--file)
+            COMPREPLY=($(compgen -f -- "$cur"))
+            return
+            ;;
+        -d|--dir)
+            COMPREPLY=($(compgen -d -- "$cur"))
+            return
+            ;;
+    esac
+
+    if [[ "$cur" == -* ]]; then
+        COMPREPLY=($(compgen -W "--help --version --file --dir" -- "$cur"))
+    else
+        COMPREPLY=($(compgen -W "action1 action2 action3" -- "$cur"))
+    fi
+}
+complete -F _mycommand_complete mycommand
+```
+
+### Dynamic Completions
+
+```bash
+_docker_images() {
+    local cur="${COMP_WORDS[COMP_CWORD]}"
+    local images=$(docker images --format '{{.Repository}}:{{.Tag}}' 2>/dev/null)
+    COMPREPLY=($(compgen -W "$images" -- "$cur"))
+}
+complete -F _docker_images docker
+```
+
+## Tips
+
+### Bash-Completion Compatibility
+
+Many bash completion scripts work with fortsh. Install and source them:
+
+```bash
+# Source bash-completion
+[[ -r /usr/share/bash-completion/bash_completion ]] && \
+    source /usr/share/bash-completion/bash_completion
+```
+
+### Debug Completions
+
+```bash
+set -x                    # Enable trace
+mycommand <Tab>           # See what runs
+set +x                    # Disable trace
+```

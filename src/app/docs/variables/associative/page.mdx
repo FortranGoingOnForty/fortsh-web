@@ -1,0 +1,268 @@
+# Associative Arrays
+
+Associative arrays (also called hash maps or dictionaries) use string keys instead of numeric indices.
+
+**Source:** `src/scripting/variables.f90:1073-1155`, `src/execution/builtins.f90:3286-3389`
+
+## Declaration
+
+Associative arrays must be explicitly declared before use:
+
+```bash
+declare -A myarray
+```
+
+## Assignment
+
+### Individual Elements
+
+```bash
+declare -A colors
+colors[red]="#ff0000"
+colors[green]="#00ff00"
+colors[blue]="#0000ff"
+```
+
+### Compound Assignment
+
+```bash
+declare -A user=(
+    [name]="John"
+    [email]="john@example.com"
+    [age]="30"
+)
+```
+
+### Keys with Spaces
+
+Quote keys containing spaces:
+
+```bash
+declare -A data
+data["first name"]="John"
+data["last name"]="Doe"
+```
+
+## Accessing Elements
+
+```bash
+declare -A arr=([foo]=1 [bar]=2)
+
+echo ${arr[foo]}              # 1
+echo ${arr[bar]}              # 2
+echo ${arr[missing]}          # (empty string)
+```
+
+### Check if Key Exists
+
+```bash
+if [[ -v arr[foo] ]]; then
+    echo "Key 'foo' exists"
+fi
+```
+
+## All Keys
+
+Get all keys with `${!arr[@]}`:
+
+```bash
+declare -A arr=([a]=1 [b]=2 [c]=3)
+
+echo "${!arr[@]}"             # a b c (order may vary)
+
+for key in "${!arr[@]}"; do
+    echo "$key = ${arr[$key]}"
+done
+```
+
+**Source:** `variables.f90:1133-1155` - `get_assoc_array_keys()`
+
+## All Values
+
+Get all values with `${arr[@]}`:
+
+```bash
+declare -A arr=([a]=1 [b]=2 [c]=3)
+
+echo "${arr[@]}"              # 1 2 3
+
+for value in "${arr[@]}"; do
+    echo "Value: $value"
+done
+```
+
+## Array Length
+
+```bash
+declare -A arr=([a]=1 [b]=2 [c]=3)
+
+echo ${#arr[@]}               # 3 (number of elements)
+echo ${#arr[a]}               # 1 (length of value)
+```
+
+## Iteration
+
+### Keys and Values
+
+```bash
+declare -A config=(
+    [host]="localhost"
+    [port]="8080"
+    [debug]="true"
+)
+
+for key in "${!arr[@]}"; do
+    value="${config[$key]}"
+    echo "$key: $value"
+done
+```
+
+### Just Values
+
+```bash
+for value in "${config[@]}"; do
+    echo "$value"
+done
+```
+
+## Modifying Arrays
+
+### Update Element
+
+```bash
+arr[key]="new value"
+```
+
+### Delete Element
+
+```bash
+unset 'arr[key]'
+```
+
+### Clear Array
+
+```bash
+unset arr
+declare -A arr
+```
+
+## Common Patterns
+
+### Lookup Table
+
+```bash
+declare -A status_codes=(
+    [200]="OK"
+    [404]="Not Found"
+    [500]="Internal Server Error"
+)
+
+code=404
+echo "Error: ${status_codes[$code]}"
+```
+
+### Word Count
+
+```bash
+declare -A counts
+
+while read -r word; do
+    ((counts[$word]++))
+done < file.txt
+
+for word in "${!counts[@]}"; do
+    echo "$word: ${counts[$word]}"
+done
+```
+
+### Default Value
+
+```bash
+value="${arr[$key]:-default}"
+```
+
+### Check and Assign
+
+```bash
+declare -A cache
+
+get_cached() {
+    local key="$1"
+    if [[ ! -v cache[$key] ]]; then
+        cache[$key]=$(expensive_operation "$key")
+    fi
+    echo "${cache[$key]}"
+}
+```
+
+### Configuration Parser
+
+```bash
+declare -A config
+
+while IFS='=' read -r key value; do
+    [[ $key =~ ^[[:space:]]*# ]] && continue   # Skip comments
+    [[ -z "$key" ]] && continue                 # Skip empty lines
+    config[${key// /}]="${value// /}"           # Trim whitespace
+done < config.ini
+```
+
+### Bidirectional Map
+
+```bash
+declare -A name_to_id
+declare -A id_to_name
+
+add_mapping() {
+    name_to_id[$1]=$2
+    id_to_name[$2]=$1
+}
+
+add_mapping "alice" "001"
+add_mapping "bob" "002"
+
+echo "alice's ID: ${name_to_id[alice]}"
+echo "ID 002 is: ${id_to_name[002]}"
+```
+
+## Implementation Details
+
+### Storage
+
+Associative array entries are stored in an allocated array of key-value pairs:
+
+```fortran
+type :: assoc_array_entry_t
+  character(len=256) :: key
+  character(len=1024) :: value
+end type
+```
+
+Source: `types.f90:179-185`
+
+### Key Matching
+
+Key lookup uses exact string comparison (variables.f90:1086, 1123):
+
+```fortran
+trim(shell%variables(i)%assoc_entries(j)%key) == trim(key)
+```
+
+## Limitations
+
+- **Maximum entries:** 50 per array (initial allocation)
+- **Maximum key length:** 256 characters
+- **Maximum value length:** 1024 characters
+- **No dynamic resizing:** Exceeding 50 entries produces: `associative array: too many entries`
+
+These limits are implementation-specific and may change in future versions.
+
+## Differences from Indexed Arrays
+
+| Feature | Indexed Array | Associative Array |
+|---------|---------------|-------------------|
+| Declaration | `declare -a` (optional) | `declare -A` (required) |
+| Keys | Integers (0, 1, 2...) | Strings |
+| Default index | 0 | (none) |
+| Sparse | Yes | N/A |
+| Order | By index | Undefined |

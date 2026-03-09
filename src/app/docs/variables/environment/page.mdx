@@ -1,0 +1,375 @@
+# Environment Variables
+
+Environment variables are inherited by child processes and control shell behavior.
+
+**Source:** `src/scripting/variables.f90`, `src/system/interface.f90:601-676`, `src/execution/builtins.f90:525-625`
+
+## Exporting Variables
+
+Mark a variable for export to child processes:
+
+```bash
+# Export with assignment
+export PATH="/usr/local/bin:$PATH"
+
+# Export existing variable
+myvar="value"
+export myvar
+
+# Export multiple
+export VAR1 VAR2 VAR3
+```
+
+Exported variables have their `exported` flag set to true and are passed to the system environment via `set_environment_var()` (interface.f90:628-639).
+
+## Shell Environment Variables
+
+### PATH
+
+Command search path, colon-separated:
+
+```bash
+export PATH="/usr/local/bin:/usr/bin:/bin"
+
+# Prepend directory
+export PATH="/my/scripts:$PATH"
+
+# Append directory
+export PATH="$PATH:/my/scripts"
+```
+
+When a command without `/` is executed, fortsh searches each PATH directory in order (builtins.f90:948-1005).
+
+### HOME
+
+User's home directory:
+
+```bash
+echo "$HOME"               # /home/username
+cd ~                       # Uses HOME
+cd                         # Without argument, cd goes to HOME
+```
+
+### PWD and OLDPWD
+
+Current and previous working directories:
+
+```bash
+echo "$PWD"                # Current directory
+echo "$OLDPWD"             # Previous directory
+cd -                       # Change to OLDPWD
+```
+
+**Source:** `variables.f90:81-96` - Updated automatically when directory changes.
+
+### CDPATH
+
+Search path for `cd` command:
+
+```bash
+export CDPATH=".:~:~/projects"
+cd myproject               # Searches CDPATH directories
+```
+
+Only used when the cd argument has no `/` (builtins.f90:381-429).
+
+### SHELL
+
+Path to the current shell:
+
+```bash
+echo "$SHELL"              # /usr/local/bin/fortsh
+```
+
+## Prompt Variables
+
+### PS1 - Primary Prompt
+
+**Source:** `variables.f90:47-51`
+
+```bash
+PS1='\u@\h:\w\$ '          # user@host:/path$
+```
+
+See [Special Variables](/docs/variables/special#ps1-escape-sequences) for escape sequences.
+
+### PS2 - Continuation Prompt
+
+Displayed when more input is expected:
+
+```bash
+PS2='> '
+
+# Example: multi-line input
+echo "line 1
+> line 2"
+```
+
+### PS3 - Select Prompt
+
+Used by `select` statements:
+
+```bash
+PS3="Choose an option: "
+
+select opt in "Option 1" "Option 2" "Quit"; do
+    case $opt in
+        "Quit") break ;;
+        *) echo "Selected: $opt" ;;
+    esac
+done
+```
+
+### PS4 - Debug Prompt
+
+Prefix for `set -x` trace output:
+
+```bash
+PS4='+ ${BASH_SOURCE}:${LINENO}: '
+set -x
+echo "debug me"
+# Output: + script.sh:3: echo 'debug me'
+```
+
+## History Variables
+
+### HISTFILE
+
+Location of history file:
+
+```bash
+export HISTFILE="$HOME/.fortsh_history"
+```
+
+**Source:** `variables.f90:103-105` - Stored in `shell%histfile`.
+
+### HISTSIZE
+
+Maximum commands in memory:
+
+```bash
+export HISTSIZE=10000
+```
+
+**Source:** `variables.f90:106-109` - Parsed as integer into `shell%histsize`.
+
+### HISTFILESIZE
+
+Maximum lines in history file:
+
+```bash
+export HISTFILESIZE=20000
+```
+
+**Source:** `variables.f90:110-113`
+
+### HISTCONTROL
+
+History behavior control:
+
+```bash
+export HISTCONTROL=ignoredups:erasedups
+```
+
+Options:
+- `ignorespace` - Ignore commands starting with space
+- `ignoredups` - Ignore duplicate consecutive commands
+- `erasedups` - Remove all previous duplicates
+- `ignoreboth` - `ignorespace` + `ignoredups`
+
+## IFS - Input Field Separator
+
+Controls word splitting:
+
+**Source:** `variables.f90:76-79`
+
+```bash
+# Default: space, tab, newline
+echo "$IFS" | od -c        # Shows whitespace characters
+
+# Split on colons
+IFS=':'
+arr=($PATH)
+echo "${arr[0]}"           # First PATH component
+
+# Restore default
+unset IFS
+```
+
+Default value: `' \t\n'` (types.f90:398)
+
+## User Information
+
+### UID
+
+User ID (readonly):
+
+```bash
+echo "$UID"                # e.g., 1000
+```
+
+### EUID
+
+Effective user ID (readonly):
+
+```bash
+echo "$EUID"               # e.g., 0 (when running as root via sudo)
+```
+
+### USER / LOGNAME
+
+Username:
+
+```bash
+echo "$USER"
+echo "$LOGNAME"
+```
+
+## System Information
+
+### HOSTNAME
+
+System hostname:
+
+```bash
+echo "$HOSTNAME"
+```
+
+### TERM
+
+Terminal type:
+
+```bash
+echo "$TERM"               # e.g., xterm-256color
+```
+
+### LANG / LC_*
+
+Locale settings:
+
+```bash
+echo "$LANG"               # e.g., en_US.UTF-8
+```
+
+## Shell Information
+
+### SHLVL
+
+Shell nesting level:
+
+```bash
+echo "$SHLVL"              # 1 in first shell
+bash                       # Start nested shell
+echo "$SHLVL"              # 2
+```
+
+### PPID
+
+Parent process ID (readonly):
+
+```bash
+echo "$PPID"               # PID of parent process
+```
+
+### FORTSH_VERSION
+
+fortsh version string:
+
+```bash
+echo "$FORTSH_VERSION"     # e.g., 1.3.1
+```
+
+## Viewing Environment
+
+### All Variables
+
+```bash
+env                        # All exported variables
+printenv                   # Same as env
+export -p                  # With 'declare -x' prefix
+```
+
+### Specific Variable
+
+```bash
+printenv PATH
+echo "$PATH"
+```
+
+### Check if Exported
+
+```bash
+export -p | grep VAR
+```
+
+## Removing Variables
+
+### Unset
+
+```bash
+unset MYVAR                # Remove variable
+```
+
+### Unexport (keep value)
+
+Not directly supported. Workaround:
+
+```bash
+value="$MYVAR"
+unset MYVAR
+MYVAR="$value"
+```
+
+## Common Patterns
+
+### Temporary Environment
+
+Set variable for one command:
+
+```bash
+DEBUG=1 ./myscript.sh      # DEBUG only set for myscript
+echo "$DEBUG"              # Empty - not set in current shell
+```
+
+### Path Manipulation
+
+```bash
+# Add to front (takes precedence)
+export PATH="/new/path:$PATH"
+
+# Add to end (fallback)
+export PATH="$PATH:/new/path"
+
+# Remove duplicates
+PATH=$(printf %s "$PATH" | awk -v RS=: -v ORS=: '!arr[$0]++')
+PATH="${PATH%:}"           # Remove trailing colon
+```
+
+### Default Values
+
+```bash
+: "${CONFIG_FILE:=/etc/myapp/config}"
+export CONFIG_FILE
+```
+
+### Required Variables
+
+```bash
+: "${API_KEY:?API_KEY must be set}"
+```
+
+## Implementation Notes
+
+### Environment Access
+
+- Get: `get_environment_var()` (interface.f90:601-626) - Uses C `getenv()`
+- Set: `set_environment_var()` (interface.f90:628-639) - Uses C `setenv()` with overwrite=1
+- Maximum environment value length: 32768 bytes (MAX_ENV_LEN)
+
+### Special Variable Updates
+
+When PWD, OLDPWD, or PATH are modified, they are immediately synchronized to the system environment (variables.f90:81-102).
+
+### Length Preservation
+
+Variable values preserve their exact length, including trailing whitespace, via the `value_len` field (variables.f90:189).

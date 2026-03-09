@@ -1,0 +1,234 @@
+# Pipes
+
+Pipes connect command output to input, enabling data flow between programs.
+
+**Source:** `src/execution/executor.f90`, `src/parsing/parser.f90`
+
+## Basic Pipes
+
+```bash
+command1 | command2
+```
+
+The standard output of `command1` becomes the standard input of `command2`.
+
+```bash
+ls -la | grep "\.txt"       # List files, filter for .txt
+cat file | wc -l            # Count lines
+ps aux | grep nginx         # Find nginx processes
+```
+
+## Pipeline Chains
+
+Connect multiple commands:
+
+```bash
+cmd1 | cmd2 | cmd3 | cmd4
+```
+
+```bash
+cat /var/log/syslog | grep error | sort | uniq -c | sort -rn | head
+```
+
+## Pipe stderr
+
+### Pipe both stdout and stderr
+
+```bash
+command |& next             # fortsh/bash extension
+command 2>&1 | next         # POSIX equivalent
+```
+
+```bash
+./script.sh |& tee output.log
+make 2>&1 | grep -i error
+```
+
+## Pipeline Exit Status
+
+By default, the exit status of a pipeline is the exit status of the **last** command.
+
+```bash
+false | true
+echo $?                      # 0 (true succeeded)
+```
+
+### pipefail Option
+
+With `set -o pipefail`, the pipeline fails if **any** command fails:
+
+```bash
+set -o pipefail
+false | true
+echo $?                      # 1 (false failed)
+
+cat missing.txt | wc -l
+echo $?                      # 1 (cat failed)
+```
+
+## PIPESTATUS Array
+
+Check individual command exit statuses:
+
+```bash
+cmd1 | cmd2 | cmd3
+echo "${PIPESTATUS[0]}"      # Exit status of cmd1
+echo "${PIPESTATUS[1]}"      # Exit status of cmd2
+echo "${PIPESTATUS[2]}"      # Exit status of cmd3
+```
+
+## Process Substitution
+
+Use command output as a file:
+
+```bash
+<(command)                   # Substitute as input file
+>(command)                   # Substitute as output file
+```
+
+### Input Substitution
+
+```bash
+diff <(cmd1) <(cmd2)         # Compare two command outputs
+cat <(ls -la)                # Use ls output as file
+paste <(seq 5) <(seq 5 9)    # Combine sequences
+```
+
+### Output Substitution
+
+```bash
+tee >(process1) >(process2) < input
+command | tee >(gzip > file.gz)
+```
+
+### Implementation
+
+Process substitution creates a named pipe (FIFO) in `/tmp`:
+
+```fortran
+! From executor.f90
+call mkfifo(fifo_path, mode, errno)
+! Fork child to execute command, writing to FIFO
+! Parent replaces <(...) with FIFO path
+```
+
+## Subshell Behavior
+
+Each command in a pipeline runs in a **subshell**:
+
+```bash
+echo "hello" | read greeting
+echo "$greeting"              # Empty! read ran in subshell
+
+# Workaround: use process substitution
+read greeting < <(echo "hello")
+echo "$greeting"              # hello
+```
+
+Or use command grouping:
+
+```bash
+echo "hello" | { read greeting; echo "$greeting"; }
+```
+
+## Common Patterns
+
+### Filter and count
+
+```bash
+grep pattern file | wc -l
+```
+
+### Sort and unique
+
+```bash
+sort file | uniq
+sort file | uniq -c | sort -rn
+```
+
+### Find and process
+
+```bash
+find . -name "*.txt" | xargs grep pattern
+find . -type f | head -20
+```
+
+### Log processing
+
+```bash
+tail -f /var/log/syslog | grep --line-buffered error
+```
+
+### JSON processing
+
+```bash
+curl -s api.example.com | jq '.data[]'
+```
+
+### Archive listing
+
+```bash
+tar -tzf archive.tar.gz | head
+```
+
+## Pipeline with xargs
+
+```bash
+find . -name "*.tmp" | xargs rm
+echo "file1 file2" | xargs -n1 cat
+```
+
+### Parallel execution
+
+```bash
+find . -name "*.jpg" | xargs -P4 -I{} convert {} {}.png
+```
+
+## Buffering
+
+Pipes buffer data. For real-time output, use unbuffered options:
+
+```bash
+grep --line-buffered pattern | next
+stdbuf -oL command | next
+```
+
+## Named Pipes (FIFOs)
+
+Create persistent pipes:
+
+```bash
+mkfifo mypipe
+
+# Terminal 1
+cat > mypipe
+
+# Terminal 2
+cat < mypipe
+```
+
+## Performance
+
+Pipes are efficient:
+- Data stays in kernel buffers
+- No disk I/O
+- Automatic backpressure (writer blocks if buffer full)
+
+Buffer size is system-dependent (typically 64KB on Linux).
+
+## Debugging
+
+### See intermediate data
+
+```bash
+cmd1 | tee /dev/stderr | cmd2     # Print to stderr
+cmd1 | tee debug.txt | cmd2       # Save to file
+```
+
+### Check pipeline
+
+```bash
+set -x                             # Enable debug output
+cmd1 | cmd2 | cmd3
+set +x
+```
