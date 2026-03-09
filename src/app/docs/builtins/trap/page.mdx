@@ -1,0 +1,241 @@
+# trap
+
+Set signal handlers.
+
+**Source:** `src/execution/builtins.f90:1347-1466`, `src/system/signal_handling.f90`
+
+## Synopsis
+
+```bash
+trap [-lp] [[action] signal ...]
+```
+
+## Description
+
+The `trap` builtin allows scripts to catch signals and execute cleanup code. It's essential for writing robust scripts that handle interruption gracefully.
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `-l` | List all signal names |
+| `-p` | Print trap commands |
+
+## Signals
+
+Common signals:
+
+| Signal | Number | Description |
+|--------|--------|-------------|
+| `HUP` | 1 | Hangup |
+| `INT` | 2 | Interrupt (Ctrl+C) |
+| `QUIT` | 3 | Quit (Ctrl+\\) |
+| `TERM` | 15 | Termination |
+| `EXIT` | 0 | Shell exit |
+| `ERR` | - | Command error |
+| `DEBUG` | - | Before each command |
+| `RETURN` | - | Function/source return |
+
+## Usage
+
+### Set Trap
+
+```bash
+trap 'echo "Caught SIGINT"' INT
+```
+
+### Multiple Signals
+
+```bash
+trap 'cleanup' INT TERM EXIT
+```
+
+### Ignore Signal
+
+```bash
+trap '' INT    # Ignore Ctrl+C
+```
+
+### Reset to Default
+
+```bash
+trap - INT     # Reset INT handler
+```
+
+### List Signals
+
+```bash
+trap -l
+```
+
+### Show Current Traps
+
+```bash
+trap -p
+trap -p INT    # Show specific
+```
+
+## Examples
+
+### Cleanup on Exit
+
+```bash
+#!/usr/bin/env fortsh
+tmpfile=$(mktemp)
+
+cleanup() {
+    rm -f "$tmpfile"
+    echo "Cleaned up"
+}
+trap cleanup EXIT
+
+# Script work...
+echo "data" > "$tmpfile"
+# Cleanup runs automatically on exit
+```
+
+### Handle Ctrl+C
+
+```bash
+#!/usr/bin/env fortsh
+trap 'echo "Use quit to exit"; continue' INT
+
+while true; do
+    read -p "Command: " cmd
+    [[ $cmd == quit ]] && break
+    eval "$cmd"
+done
+```
+
+### Graceful Shutdown
+
+```bash
+#!/usr/bin/env fortsh
+running=true
+
+shutdown() {
+    echo "Shutting down..."
+    running=false
+}
+trap shutdown TERM INT
+
+while $running; do
+    process_work
+    sleep 1
+done
+
+echo "Exited cleanly"
+```
+
+### Error Handling
+
+```bash
+#!/usr/bin/env fortsh
+set -e
+
+on_error() {
+    echo "Error on line $1" >&2
+    exit 1
+}
+trap 'on_error $LINENO' ERR
+
+# Commands that might fail...
+```
+
+### Debug Tracing
+
+```bash
+trap 'echo "+ $BASH_COMMAND"' DEBUG
+# Every command is printed before execution
+```
+
+## Pseudo-Signals
+
+| Signal | Triggered |
+|--------|-----------|
+| `EXIT` | When shell exits |
+| `ERR` | When command fails (with set -e) |
+| `DEBUG` | Before each command |
+| `RETURN` | When function/source returns |
+
+### EXIT Example
+
+```bash
+trap 'echo "Goodbye"' EXIT
+# Runs on normal exit, error, or signal
+```
+
+### ERR Example
+
+```bash
+set -e
+trap 'echo "Failed: $BASH_COMMAND"' ERR
+false   # Triggers ERR trap
+```
+
+## Common Patterns
+
+### Lock File
+
+```bash
+lockfile="/var/run/script.lock"
+
+cleanup() {
+    rm -f "$lockfile"
+}
+trap cleanup EXIT
+
+echo $$ > "$lockfile"
+```
+
+### Signal Forwarding
+
+```bash
+child_pid=""
+cleanup() {
+    [[ -n "$child_pid" ]] && kill "$child_pid" 2>/dev/null
+}
+trap cleanup EXIT INT TERM
+
+long_process &
+child_pid=$!
+wait $child_pid
+```
+
+### Re-raise Signal
+
+```bash
+cleanup() {
+    echo "Cleaning up..."
+    trap - TERM
+    kill -TERM $$
+}
+trap cleanup TERM
+```
+
+## Implementation
+
+**Source:** signal_handling.f90
+
+- Traps stored in `shell%traps` array
+- Real signals registered via `c_sigaction()`
+- Pseudo-signals handled by shell logic
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | Success |
+| 1 | Invalid signal or option |
+
+## Notes
+
+- SIGKILL and SIGSTOP cannot be trapped
+- Traps are reset in subshells
+- Action runs in current shell context
+- Empty action ('') ignores signal
+
+## See Also
+
+- [Signals & Traps](/docs/job-control/signals) - Full signal documentation
+- [kill](/docs/builtins/kill) - Send signals

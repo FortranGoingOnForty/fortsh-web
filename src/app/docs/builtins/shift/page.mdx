@@ -1,0 +1,185 @@
+# shift
+
+Shift positional parameters.
+
+**Source:** `src/execution/builtins.f90:2373-2404`
+
+## Synopsis
+
+```bash
+shift [n]
+```
+
+## Description
+
+The `shift` builtin removes the first N positional parameters, shifting the remaining parameters down. `$2` becomes `$1`, `$3` becomes `$2`, and so on.
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `n` | Number of positions to shift (default: 1) |
+
+## Usage
+
+### Basic Shift
+
+```bash
+set -- one two three four
+echo $1    # one
+
+shift
+echo $1    # two
+echo $2    # three
+```
+
+### Shift Multiple
+
+```bash
+set -- a b c d e
+shift 3
+echo $1    # d
+echo $@    # d e
+```
+
+## Examples
+
+### Process All Arguments
+
+```bash
+while [[ $# -gt 0 ]]; do
+    echo "Processing: $1"
+    shift
+done
+```
+
+### Option Parsing
+
+```bash
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -v) verbose=1; shift ;;
+        -o) output="$2"; shift 2 ;;
+        --) shift; break ;;
+        -*) echo "Unknown: $1"; exit 1 ;;
+        *)  break ;;
+    esac
+done
+```
+
+### Skip First N Arguments
+
+```bash
+#!/usr/bin/env fortsh
+# First arg is command, rest are files
+
+cmd="$1"
+shift
+
+for file in "$@"; do
+    $cmd "$file"
+done
+
+# Usage: ./script process file1 file2 file3
+```
+
+### Pair Processing
+
+```bash
+while [[ $# -ge 2 ]]; do
+    key="$1"
+    value="$2"
+    echo "$key = $value"
+    shift 2
+done
+```
+
+## Error Handling
+
+```bash
+# Shift more than available
+set -- a b
+shift 5
+# Error: cannot shift that many
+
+# Check before shifting
+if [[ $# -ge 3 ]]; then
+    shift 3
+fi
+```
+
+## Common Patterns
+
+### Consume Arguments
+
+```bash
+process_args() {
+    while [[ $# -gt 0 ]]; do
+        arg="$1"
+        shift
+        # Process $arg
+    done
+}
+```
+
+### Save and Shift
+
+```bash
+first="$1"
+shift
+rest=("$@")
+```
+
+### Until Separator
+
+```bash
+# Process until -- is found
+while [[ $# -gt 0 && $1 != "--" ]]; do
+    options+=("$1")
+    shift
+done
+[[ $1 == "--" ]] && shift
+# Remaining are non-option args
+```
+
+## Implementation
+
+**Source:** builtins.f90:2373-2404
+
+```fortran
+subroutine builtin_shift(cmd, shell)
+  ! Parse shift count (default 1)
+  ! Validate against num_positional
+  ! Shift parameters in positional_params array
+  ! Update num_positional
+end subroutine
+```
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | Success |
+| 1 | Shift count greater than `$#` |
+
+## Notes
+
+- `shift 0` does nothing (valid)
+- Negative values are errors
+- In functions, shifts function's positional parameters
+- Does not affect `$0` (script/shell name)
+
+## Related
+
+```bash
+# Alternative: use array slicing
+args=("$@")
+args=("${args[@]:1}")   # Remove first
+args=("${args[@]:3}")   # Remove first 3
+```
+
+## See Also
+
+- [Special Variables](/docs/variables/special) - `$@`, `$#`, `$1`
+- [set](/docs/builtins/set) - Set positional parameters
+- [getopts](/docs/builtins/getopts) - Parse options

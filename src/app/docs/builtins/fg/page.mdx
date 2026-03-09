@@ -1,0 +1,210 @@
+# fg / bg
+
+Manage foreground and background jobs.
+
+**Source:** `src/execution/builtins.f90:856-927`, `src/execution/jobs.f90`
+
+## Synopsis
+
+```bash
+fg [jobspec]
+bg [jobspec ...]
+```
+
+## Description
+
+The `fg` builtin brings a background job to the foreground. The `bg` builtin resumes stopped jobs in the background.
+
+## fg - Foreground
+
+### Usage
+
+```bash
+sleep 100 &
+# [1] 12345
+
+fg %1
+# sleep 100
+# (now in foreground)
+```
+
+### Default Job
+
+Without arguments, fg uses the current job (`%+`):
+
+```bash
+sleep 100 &
+fg           # Brings sleep to foreground
+```
+
+### Job Specification
+
+```bash
+fg %1        # Job 1
+fg %+        # Current job
+fg %%        # Current job
+fg %-        # Previous job
+fg %sleep    # Job starting with "sleep"
+fg %?100     # Job containing "100"
+```
+
+**Source:** builtins.f90:856-890
+
+## bg - Background
+
+### Usage
+
+```bash
+vim file.txt
+# Press Ctrl+Z
+# [1]+  Stopped                 vim file.txt
+
+bg %1
+# [1]+ vim file.txt &
+# (continues in background)
+```
+
+### Multiple Jobs
+
+```bash
+bg %1 %2 %3
+```
+
+**Source:** builtins.f90:892-927
+
+## Examples
+
+### Suspend and Resume
+
+```bash
+# Start long-running command
+./compile.sh
+
+# Realize you need to do something else
+# Press Ctrl+Z
+# [1]+  Stopped                 ./compile.sh
+
+# Continue it in background
+bg
+
+# Do other work...
+
+# Bring back to foreground to check
+fg
+```
+
+### Multiple Jobs
+
+```bash
+./task1 &
+./task2 &
+vim &
+# Press Ctrl+Z in vim
+
+jobs
+# [1]   Running                 ./task1 &
+# [2]-  Running                 ./task2 &
+# [3]+  Stopped                 vim
+
+fg %vim     # Continue vim
+```
+
+### Background Then Check
+
+```bash
+./process &
+# Do other things...
+
+fg %1
+# See output, interact
+# Ctrl+Z to suspend again
+bg          # Continue in background
+```
+
+## Behavior
+
+### fg Behavior
+
+1. Gives terminal control to job
+2. Sends SIGCONT if job was stopped
+3. Waits for job to complete or stop
+4. Returns exit status when done
+
+### bg Behavior
+
+1. Sets job to background state
+2. Sends SIGCONT if job was stopped
+3. Returns immediately
+4. Job continues without terminal
+
+## Job Specification
+
+| Spec | Meaning |
+|------|---------|
+| `%n` | Job number n |
+| `%%` or `%+` | Current job |
+| `%-` | Previous job |
+| `%string` | Job command starts with string |
+| `%?string` | Job command contains string |
+
+## Implementation
+
+**Source:** jobs.f90
+
+- `put_job_foreground()`: Gives terminal, sends SIGCONT, waits
+- `put_job_background()`: Sets background flag, sends SIGCONT
+
+## Exit Status
+
+### fg
+
+| Status | Condition |
+|--------|-----------|
+| 0-255 | Exit status of foregrounded job |
+| 1 | No such job |
+
+### bg
+
+| Status | Condition |
+|--------|-----------|
+| 0 | Success |
+| 1 | No such job |
+
+## Common Workflows
+
+### Temporary Background
+
+```bash
+# Editing a file, need to check something
+vim file.txt
+# Ctrl+Z
+
+ls -la
+cat other_file.txt
+
+# Back to vim
+fg
+```
+
+### Long Compilation
+
+```bash
+make -j4
+# Ctrl+Z (if you need terminal)
+bg           # Let it run
+jobs         # Check status
+fg           # See output when done
+```
+
+## Notes
+
+- Only works with jobs from current shell
+- Terminal programs may not work well in background
+- Stopped jobs don't use CPU
+- Background jobs continue until complete or killed
+
+## See Also
+
+- [jobs](/docs/builtins/jobs) - List jobs
+- [kill](/docs/builtins/kill) - Send signals
+- [Background Jobs](/docs/job-control/background) - Full documentation

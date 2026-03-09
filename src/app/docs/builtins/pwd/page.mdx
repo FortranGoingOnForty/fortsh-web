@@ -1,0 +1,116 @@
+# pwd
+
+Print working directory.
+
+**Source:** `src/execution/builtins.f90`
+
+## Synopsis
+
+```bash
+pwd [-LP]
+```
+
+## Description
+
+The `pwd` builtin prints the absolute pathname of the current working directory.
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `-L` | Logical path (with symlinks, default) |
+| `-P` | Physical path (resolve symlinks) |
+
+## Usage
+
+### Basic Usage
+
+```bash
+pwd
+# /home/user/projects
+```
+
+### Physical Path
+
+```bash
+cd /tmp
+ln -s /var/log logs
+cd logs
+
+pwd -L
+# /tmp/logs
+
+pwd -P
+# /var/log
+```
+
+## Examples
+
+### In Scripts
+
+```bash
+#!/usr/bin/env fortsh
+script_dir="$(pwd)"
+echo "Running from: $script_dir"
+```
+
+### Save and Restore
+
+```bash
+original_dir="$(pwd)"
+cd /somewhere/else
+# Do work...
+cd "$original_dir"
+```
+
+### Check Current Location
+
+```bash
+if [[ "$(pwd)" == "$HOME" ]]; then
+    echo "You're in home directory"
+fi
+```
+
+## Variables
+
+| Variable | Description |
+|----------|-------------|
+| `$PWD` | Current directory (same as `pwd -L`) |
+| `$OLDPWD` | Previous directory |
+
+```bash
+echo $PWD       # Same as pwd
+echo $OLDPWD    # Previous directory
+cd -            # Goes to $OLDPWD
+```
+
+## Implementation
+
+The builtin returns `shell%cwd` which is updated on every directory change.
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | Success |
+| 1 | Error (rare) |
+
+## vs /bin/pwd
+
+| Feature | builtin | /bin/pwd |
+|---------|---------|----------|
+| Speed | Faster | Slower |
+| Symlinks | Uses $PWD | May differ |
+| -P option | Yes | Yes |
+
+## Notes
+
+- `pwd` is faster than `$(pwd)` command substitution
+- `$PWD` is equivalent to `pwd` in most cases
+- Physical path may differ after following symlinks
+
+## See Also
+
+- [cd](/docs/builtins/cd) - Change directory
+- [pushd / popd](/docs/builtins/pushd) - Directory stack
+- [Environment Variables](/docs/variables/environment) - PWD, OLDPWD

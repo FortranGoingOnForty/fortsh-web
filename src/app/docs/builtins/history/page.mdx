@@ -1,0 +1,136 @@
+# history
+
+Display and manipulate command history.
+
+**Source:** `src/execution/builtins.f90`, `src/io/readline.f90`
+
+## Synopsis
+
+```bash
+history [n]
+history -c
+history -d offset
+history -a|-r|-w [filename]
+```
+
+## Description
+
+The `history` builtin displays and manages the command history list.
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `n` | Show last n commands |
+| `-c` | Clear history |
+| `-d offset` | Delete entry at offset |
+| `-a` | Append new entries to file |
+| `-r` | Read history from file |
+| `-w` | Write history to file |
+
+## Usage
+
+### Display History
+
+```bash
+history        # Show all
+history 10     # Show last 10
+```
+
+### Clear History
+
+```bash
+history -c
+```
+
+### Delete Entry
+
+```bash
+history -d 42    # Delete entry 42
+```
+
+### File Operations
+
+```bash
+history -a       # Append to HISTFILE
+history -r       # Read from HISTFILE
+history -w       # Write to HISTFILE
+```
+
+## Examples
+
+### Search History
+
+```bash
+history | grep git
+```
+
+### Re-run Command
+
+```bash
+!42              # Run command 42
+!!               # Run last command
+!git             # Run last git command
+```
+
+### Save Current Session
+
+```bash
+history -w ~/.history_backup
+```
+
+### Load Another History
+
+```bash
+history -r ~/.other_history
+```
+
+## Configuration
+
+### HISTFILE
+
+```bash
+export HISTFILE="$HOME/.fortsh_history"
+```
+
+### HISTSIZE
+
+```bash
+export HISTSIZE=10000     # In memory
+```
+
+### HISTFILESIZE
+
+```bash
+export HISTFILESIZE=20000  # In file
+```
+
+### HISTCONTROL
+
+```bash
+export HISTCONTROL=ignoredups:erasedups
+```
+
+Options:
+- `ignorespace` - Skip commands starting with space
+- `ignoredups` - Skip consecutive duplicates
+- `erasedups` - Remove all previous duplicates
+- `ignoreboth` - `ignorespace` + `ignoredups`
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | Success |
+| 1 | Invalid option or offset |
+
+## Notes
+
+- History persists across sessions via HISTFILE
+- Use `!n` to recall command n
+- File ops require HISTFILE to be set
+
+## See Also
+
+- [History](/docs/interactive/history) - Full history documentation
+- [Line Editing](/docs/interactive/line-editing) - Navigation

@@ -1,0 +1,196 @@
+# kill
+
+Send signals to processes.
+
+**Source:** `src/execution/builtins.f90:1139-1283`
+
+## Synopsis
+
+```bash
+kill [-s signal | -signal] pid|jobspec ...
+kill -l [signal]
+```
+
+## Description
+
+The `kill` builtin sends signals to processes or jobs. Despite its name, it can send any signal, not just termination signals.
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `-s signal` | Specify signal by name |
+| `-signal` | Specify signal (name or number) |
+| `-l` | List signal names |
+| `-l signal` | Convert signal number to name |
+
+## Usage
+
+### Send SIGTERM (default)
+
+```bash
+kill 1234
+kill %1        # Job 1
+```
+
+### Send Specific Signal
+
+```bash
+kill -9 1234           # SIGKILL
+kill -KILL 1234        # Same
+kill -s KILL 1234      # Same
+
+kill -HUP 1234         # SIGHUP
+kill -TERM 1234        # SIGTERM
+kill -STOP 1234        # Suspend
+kill -CONT 1234        # Resume
+```
+
+### List Signals
+
+```bash
+kill -l
+#  1) SIGHUP    2) SIGINT    3) SIGQUIT
+#  9) SIGKILL  15) SIGTERM  ...
+
+kill -l 9
+# KILL
+
+kill -l TERM
+# 15
+```
+
+### Kill Job
+
+```bash
+sleep 100 &
+# [1] 12345
+
+kill %1        # Kill job 1
+kill %%        # Kill current job
+kill %+        # Same as %%
+```
+
+## Common Signals
+
+| Signal | Number | Action | Use |
+|--------|--------|--------|-----|
+| HUP | 1 | Terminate | Reload config |
+| INT | 2 | Terminate | Interrupt (Ctrl+C) |
+| QUIT | 3 | Core dump | Quit |
+| KILL | 9 | Terminate | Force kill (can't catch) |
+| TERM | 15 | Terminate | Graceful shutdown |
+| STOP | 19 | Stop | Suspend (can't catch) |
+| CONT | 18 | Continue | Resume |
+| USR1 | 10 | User defined | Custom |
+| USR2 | 12 | User defined | Custom |
+
+## Examples
+
+### Graceful Then Force
+
+```bash
+pid=1234
+
+# Try graceful first
+kill $pid
+sleep 2
+
+# Check if still running
+if kill -0 $pid 2>/dev/null; then
+    kill -9 $pid
+fi
+```
+
+### Kill Process Group
+
+```bash
+# Negative PID kills entire group
+kill -- -1234
+```
+
+### Reload Configuration
+
+```bash
+# Send SIGHUP to daemon
+kill -HUP $(cat /var/run/daemon.pid)
+```
+
+### Check If Process Exists
+
+```bash
+if kill -0 $pid 2>/dev/null; then
+    echo "Process $pid is running"
+fi
+```
+
+### Kill All Background Jobs
+
+```bash
+kill $(jobs -p)
+```
+
+### Signal Script
+
+```bash
+# In script: handle USR1
+trap 'reload_config' USR1
+
+# From outside: send USR1
+kill -USR1 $(cat /var/run/script.pid)
+```
+
+## Process Groups
+
+```bash
+# Start process group
+(
+    trap '' INT   # Ignore in group
+    ./process1 &
+    ./process2 &
+    wait
+) &
+pgid=$!
+
+# Kill entire group
+kill -- -$pgid
+```
+
+## Implementation
+
+**Source:** builtins.f90:1139-1283
+
+Key features:
+- Signal name/number conversion
+- Job specification parsing (%n)
+- Process group handling (negative PID)
+- Uses `c_kill()` system call
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | Signal sent successfully |
+| 1 | Invalid signal, PID, or permission denied |
+
+## Notes
+
+- `kill -0` checks if process exists (no signal sent)
+- Root can kill any process
+- Non-root can only kill own processes
+- `-9` should be last resort
+
+## Differences from /bin/kill
+
+| Feature | builtin | /bin/kill |
+|---------|---------|-----------|
+| Job specs | Yes | No |
+| Shell signals | Yes | Limited |
+| Exit status | Shell-aware | Standard |
+
+## See Also
+
+- [Signals & Traps](/docs/job-control/signals) - Signal handling
+- [trap](/docs/builtins/trap) - Catch signals
+- [wait](/docs/builtins/wait) - Wait for processes
+- [Background Jobs](/docs/job-control/background) - Job control

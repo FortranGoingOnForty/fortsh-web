@@ -1,0 +1,176 @@
+# command
+
+Run a command, bypassing shell functions.
+
+**Source:** `src/scripting/command_builtin.f90:143-257`
+
+## Synopsis
+
+```bash
+command [-pVv] command [arguments ...]
+```
+
+## Description
+
+The `command` builtin executes a command, ignoring any shell functions with the same name. This is useful when you've defined a function that wraps a command but need to call the original.
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `-p` | Use default PATH to find command |
+| `-v` | Print command description (like `type -t`) |
+| `-V` | Print verbose command description (like `type`) |
+
+## Usage
+
+### Bypass Function
+
+```bash
+# Define wrapper function
+ls() {
+    command ls --color=auto "$@"
+}
+
+# Inside function, 'command ls' calls real ls
+# Without 'command', it would recurse infinitely
+```
+
+### Default PATH
+
+```bash
+command -p ls
+# Uses default system PATH, ignoring user's PATH
+```
+
+### Check Command
+
+```bash
+command -v git
+# /usr/bin/git
+
+command -v cd
+# cd
+```
+
+### Verbose Check
+
+```bash
+command -V ls
+# ls is /usr/bin/ls
+# or
+# ls is aliased to 'ls --color'
+```
+
+## Examples
+
+### Wrapper Functions
+
+```bash
+# Safe rm wrapper
+rm() {
+    command rm -i "$@"
+}
+
+# Colorized ls
+ls() {
+    command ls --color=auto "$@"
+}
+
+# Git with defaults
+git() {
+    command git -c user.name="Default" "$@"
+}
+```
+
+### Check If Command Exists
+
+```bash
+if command -v docker &>/dev/null; then
+    echo "Docker is installed"
+fi
+```
+
+### POSIX-Compliant Check
+
+```bash
+# Preferred over 'which'
+has_command() {
+    command -v "$1" &>/dev/null
+}
+
+if has_command wget; then
+    wget "$url"
+elif has_command curl; then
+    curl -O "$url"
+fi
+```
+
+### Find Standard Command
+
+```bash
+# Get standard utility, ignoring aliases/functions
+command -p cat /etc/passwd
+```
+
+## Differences from Direct Execution
+
+| Method | Functions | Aliases | Builtins | PATH |
+|--------|-----------|---------|----------|------|
+| `cmd` | Yes | Yes | Yes | Yes |
+| `command cmd` | No | Yes | Yes | Yes |
+| `command -p cmd` | No | Yes | Yes | Default |
+| `\cmd` | Yes | No | Yes | Yes |
+| `builtin cmd` | No | No | Yes | No |
+
+## Implementation
+
+**Source:** command_builtin.f90:143-257
+
+When `-p` is used, the default system PATH is used instead of `$PATH`:
+- `/usr/bin:/bin:/usr/sbin:/sbin`
+
+The `-v` and `-V` flags provide command type information similar to `type`.
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | Command found (with -v/-V) or executed successfully |
+| 127 | Command not found |
+| Other | Exit status of executed command |
+
+## Common Patterns
+
+### Safe Wrapper Template
+
+```bash
+cmd_name() {
+    local args=()
+    # Add default arguments
+    args+=(--some-default)
+    args+=("$@")
+    command cmd_name "${args[@]}"
+}
+```
+
+### Check Multiple Commands
+
+```bash
+require() {
+    for cmd in "$@"; do
+        command -v "$cmd" &>/dev/null || {
+            echo "Required: $cmd" >&2
+            return 1
+        }
+    done
+}
+
+require git make gcc || exit 1
+```
+
+## See Also
+
+- [type](/docs/builtins/type) - Show command type
+- [builtin](/docs/builtins/builtin) - Run builtin only
+- [exec](/docs/builtins/exec) - Replace shell with command

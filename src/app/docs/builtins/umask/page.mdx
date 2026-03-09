@@ -1,0 +1,159 @@
+# umask
+
+Set file creation mask.
+
+**Source:** `src/execution/builtins.f90`
+
+## Synopsis
+
+```bash
+umask [-p] [-S] [mode]
+```
+
+## Description
+
+The `umask` builtin sets or displays the file mode creation mask. The mask determines which permission bits are removed from newly created files.
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `-p` | Print in reusable format |
+| `-S` | Print in symbolic format |
+
+## Usage
+
+### Display Current Mask
+
+```bash
+umask
+# 0022
+
+umask -S
+# u=rwx,g=rx,o=rx
+```
+
+### Set Mask (Octal)
+
+```bash
+umask 022    # Standard (files: 644, dirs: 755)
+umask 077    # Restrictive (files: 600, dirs: 700)
+umask 002    # Group-friendly (files: 664, dirs: 775)
+```
+
+### Set Mask (Symbolic)
+
+```bash
+umask u=rwx,g=rx,o=rx    # Same as 022
+umask u=rwx,g=,o=        # Same as 077
+```
+
+## How It Works
+
+The umask is subtracted from default permissions:
+
+| Type | Default | Umask 022 | Result |
+|------|---------|-----------|--------|
+| File | 666 | 022 | 644 (rw-r--r--) |
+| Directory | 777 | 022 | 755 (rwxr-xr-x) |
+
+### Permission Bits
+
+| Digit | Meaning |
+|-------|---------|
+| 0 | No restriction |
+| 1 | Remove execute |
+| 2 | Remove write |
+| 4 | Remove read |
+| 7 | Remove all |
+
+## Examples
+
+### Restrictive for Sensitive Data
+
+```bash
+umask 077
+echo "secret" > private.txt
+ls -l private.txt
+# -rw------- 1 user user 7 ... private.txt
+```
+
+### Group Collaboration
+
+```bash
+umask 002
+touch shared.txt
+ls -l shared.txt
+# -rw-rw-r-- 1 user group 0 ... shared.txt
+```
+
+### In Scripts
+
+```bash
+#!/usr/bin/env fortsh
+
+# Save original
+old_umask=$(umask)
+
+# Restrictive for temp files
+umask 077
+tmpfile=$(mktemp)
+echo "data" > "$tmpfile"
+
+# Restore
+umask "$old_umask"
+```
+
+### Check Before Setting
+
+```bash
+umask -p
+# umask 0022
+
+# Reusable output
+eval "$(umask -p)"   # Sets current umask
+```
+
+## Common Masks
+
+| Mask | Files | Directories | Use |
+|------|-------|-------------|-----|
+| 022 | 644 | 755 | Standard |
+| 027 | 640 | 750 | Group read |
+| 077 | 600 | 700 | Private |
+| 002 | 664 | 775 | Group write |
+| 000 | 666 | 777 | No restrictions |
+
+## Symbolic Mode
+
+Format: `[ugoa][+-=][rwx]`
+
+```bash
+umask u=rwx,g=rx,o=     # 027
+umask g-w               # Remove group write
+umask o=                # Remove all other permissions
+```
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | Success |
+| 1 | Invalid mode |
+
+## Notes
+
+- umask affects only new files
+- Existing file permissions unchanged
+- umask is inherited by child processes
+- Default is typically 022 (set by system)
+
+## Security Considerations
+
+- Use 077 for sensitive scripts
+- Use 027 for semi-private files
+- Be cautious with 000 (no restrictions)
+
+## See Also
+
+- [exec](/docs/builtins/exec) - Redirections and environment

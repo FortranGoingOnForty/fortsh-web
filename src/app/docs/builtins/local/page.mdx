@@ -1,0 +1,212 @@
+# local
+
+Declare local variables in functions.
+
+**Source:** `src/execution/builtins.f90:2307-2371`
+
+## Synopsis
+
+```bash
+local [option] name[=value] ...
+```
+
+## Description
+
+The `local` builtin creates variables that are scoped to the current function. Local variables shadow global variables of the same name.
+
+## Options
+
+Same as `declare`:
+
+| Option | Description |
+|--------|-------------|
+| `-a` | Indexed array |
+| `-A` | Associative array |
+| `-i` | Integer |
+| `-r` | Readonly |
+| `-x` | Export |
+
+## Usage
+
+### Basic Local Variable
+
+```bash
+myfunc() {
+    local myvar="local value"
+    echo "$myvar"
+}
+
+myvar="global value"
+myfunc          # "local value"
+echo "$myvar"   # "global value"
+```
+
+### Multiple Variables
+
+```bash
+func() {
+    local a=1 b=2 c=3
+    echo "$a $b $c"
+}
+```
+
+### Local Arrays
+
+```bash
+func() {
+    local -a arr=(one two three)
+    local -A map=([key]=value)
+
+    echo "${arr[0]}"
+    echo "${map[key]}"
+}
+```
+
+### Local Integer
+
+```bash
+counter() {
+    local -i count=0
+    count=count+1   # No $(()) needed
+    echo $count
+}
+```
+
+## Examples
+
+### Prevent Global Pollution
+
+```bash
+process_files() {
+    local file
+    local count=0
+
+    for file in *.txt; do
+        ((count++))
+    done
+
+    echo "Processed $count files"
+}
+# $file and $count don't exist after function
+```
+
+### Recursive Function
+
+```bash
+factorial() {
+    local -i n=$1
+
+    if [[ $n -le 1 ]]; then
+        echo 1
+    else
+        local -i prev=$(factorial $((n-1)))
+        echo $((n * prev))
+    fi
+}
+
+factorial 5   # 120
+```
+
+### Shadow Global
+
+```bash
+name="global"
+
+greet() {
+    local name="local"
+    echo "Hello, $name"
+}
+
+greet              # "Hello, local"
+echo "$name"       # "global"
+```
+
+### Modify Global Intentionally
+
+```bash
+counter=0
+
+increment() {
+    # No 'local' - modifies global
+    ((counter++))
+}
+
+increment
+echo $counter   # 1
+```
+
+## Scope Rules
+
+### Dynamic Scope
+
+Child functions see parent's local variables:
+
+```bash
+outer() {
+    local x="from outer"
+    inner
+}
+
+inner() {
+    echo "$x"   # Sees outer's x
+}
+
+outer   # "from outer"
+```
+
+### Shadowing Chain
+
+```bash
+x="global"
+
+level1() {
+    local x="level1"
+    level2
+}
+
+level2() {
+    local x="level2"
+    echo "$x"   # "level2"
+}
+
+level1
+echo "$x"   # "global"
+```
+
+## Implementation
+
+**Source:** builtins.f90:2307-2371
+
+- Only valid inside functions (checks `function_depth > 0`)
+- Variables stored in `shell%local_vars` 2D array
+- Indexed by `[function_depth, variable_index]`
+- Limit: `MAX_LOCAL_VARS` per function level
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | Success |
+| 1 | Used outside function |
+| 1 | Invalid variable name |
+
+## Notes
+
+- `local` outside function is an error
+- `local` creates new variable (doesn't modify global)
+- Readonly locals can't be modified
+- Exported locals are exported
+
+## Comparison
+
+| Declaration | Scope | In Function |
+|-------------|-------|-------------|
+| `var=value` | Global | Global |
+| `local var=value` | Function | Local |
+| `declare var=value` | Function | Local (in function) |
+
+## See Also
+
+- [declare](/docs/builtins/declare) - Declare with attributes
+- [Functions](/docs/control-flow/functions) - Function documentation
+- [Variables](/docs/variables) - Variable overview

@@ -1,0 +1,180 @@
+# type
+
+Display information about command type.
+
+**Source:** `src/scripting/command_builtin.f90:25-86`
+
+## Synopsis
+
+```bash
+type [-afptP] name [name ...]
+```
+
+## Description
+
+The `type` builtin indicates how each name would be interpreted if used as a command. It shows whether a name is a builtin, function, alias, or external command.
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `-a` | Show all matches (not just first) |
+| `-f` | Suppress function lookup |
+| `-p` | Show path only (for external commands) |
+| `-P` | Force PATH search even for builtins |
+| `-t` | Print single word type |
+
+## Output Types
+
+| Type | Description |
+|------|-------------|
+| `alias` | Shell alias |
+| `keyword` | Shell reserved word |
+| `function` | Shell function |
+| `builtin` | Shell builtin |
+| `file` | External command |
+
+## Usage
+
+### Basic Usage
+
+```bash
+type ls
+# ls is aliased to 'ls --color=auto'
+
+type cd
+# cd is a shell builtin
+
+type while
+# while is a shell keyword
+
+type git
+# git is /usr/bin/git
+```
+
+### Type Only
+
+```bash
+type -t ls
+# alias
+
+type -t cd
+# builtin
+
+type -t git
+# file
+```
+
+### Show All Matches
+
+```bash
+type -a echo
+# echo is a shell builtin
+# echo is /usr/bin/echo
+```
+
+### Path Only
+
+```bash
+type -p git
+# /usr/bin/git
+
+type -p cd
+# (no output - builtin)
+```
+
+### Force Path Search
+
+```bash
+type -P echo
+# /usr/bin/echo
+```
+
+## Examples
+
+### Check Command Type
+
+```bash
+if [[ $(type -t git) == "file" ]]; then
+    echo "git is installed"
+fi
+```
+
+### Find All Instances
+
+```bash
+type -a python
+# python is /usr/bin/python
+# python is /usr/local/bin/python
+```
+
+### Script Validation
+
+```bash
+check_commands() {
+    local cmd
+    for cmd in "$@"; do
+        if ! type -t "$cmd" &>/dev/null; then
+            echo "Missing: $cmd" >&2
+            return 1
+        fi
+    done
+}
+
+check_commands git make gcc
+```
+
+### Alias Resolution
+
+```bash
+alias ll='ls -la'
+type ll
+# ll is aliased to 'ls -la'
+
+type -t ll
+# alias
+```
+
+## Search Order
+
+When resolving commands, fortsh searches in this order:
+
+1. Keywords (`if`, `while`, `for`, etc.)
+2. Functions
+3. Builtins
+4. Aliases
+5. PATH (external commands)
+
+Use `-f` to skip function lookup.
+
+## Implementation
+
+**Source:** command_builtin.f90:25-86
+
+The function checks:
+1. `is_shell_keyword()` - Reserved words
+2. `find_function()` - User functions
+3. `is_builtin()` - Shell builtins
+4. `find_alias()` - Defined aliases
+5. `find_in_path()` - External commands
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | All names found |
+| 1 | Any name not found |
+
+## Related Commands
+
+| Command | Description |
+|---------|-------------|
+| `type` | Verbose, shows all info |
+| `which` | External command, PATH only |
+| `command -v` | POSIX way to check commands |
+
+## See Also
+
+- [command](/docs/builtins/command) - Run command, bypassing functions
+- [which](/docs/builtins/which) - Locate command
+- [alias](/docs/builtins/alias) - Create aliases

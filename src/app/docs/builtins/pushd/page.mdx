@@ -1,0 +1,230 @@
+# pushd / popd / dirs
+
+Manage a stack of directories for quick navigation.
+
+**Source:** `src/scripting/directory_builtin.f90:38-281`
+
+## Synopsis
+
+```bash
+pushd [-n] [dir]
+pushd [-n] [+N | -N]
+popd [-n] [+N | -N]
+dirs [-clpv] [+N | -N]
+```
+
+## Description
+
+These commands manage a directory stack, allowing you to switch between directories easily without typing full paths.
+
+## pushd
+
+Push a directory onto the stack and change to it.
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `-n` | Don't change directory, only manipulate stack |
+
+### Usage
+
+```bash
+pushd /var/log
+# /var/log ~
+
+pushd /etc
+# /etc /var/log ~
+
+pwd
+# /etc
+```
+
+### Rotate Stack
+
+```bash
+pushd +1     # Rotate stack, bringing 2nd entry to top
+pushd -0     # Bring last entry to top
+```
+
+**Source:** directory_builtin.f90:38-143
+
+## popd
+
+Remove directory from stack and change to it.
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `-n` | Don't change directory, only remove from stack |
+
+### Usage
+
+```bash
+dirs
+# /etc /var/log ~
+
+popd
+# /var/log ~
+
+pwd
+# /var/log
+```
+
+### Remove Specific Entry
+
+```bash
+popd +1      # Remove second entry
+popd -0      # Remove last entry
+```
+
+**Source:** directory_builtin.f90:145-236
+
+## dirs
+
+Display or clear the directory stack.
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `-c` | Clear the stack |
+| `-l` | Long format (don't abbreviate home with ~) |
+| `-p` | One directory per line |
+| `-v` | One per line with index numbers |
+
+### Usage
+
+```bash
+dirs
+# ~ /var/log /etc
+
+dirs -v
+#  0  ~
+#  1  /var/log
+#  2  /etc
+
+dirs -l
+# /home/user /var/log /etc
+
+dirs -c
+# (stack cleared)
+```
+
+**Source:** directory_builtin.f90:238-281
+
+## Stack Indices
+
+| Index | Meaning |
+|-------|---------|
+| `+0` | Current directory (top of stack) |
+| `+1` | Second entry |
+| `+N` | Nth entry from top |
+| `-0` | Last entry (bottom) |
+| `-1` | Second from bottom |
+| `-N` | Nth entry from bottom |
+
+## Examples
+
+### Project Navigation
+
+```bash
+# Start in home
+cd ~
+pushd ~/projects/webapp
+# ~/projects/webapp ~
+
+pushd ~/projects/api
+# ~/projects/api ~/projects/webapp ~
+
+# Switch between projects
+pushd +1    # Go to webapp
+pushd +1    # Go back to api
+```
+
+### Quick Round Trip
+
+```bash
+# Go somewhere temporarily
+pushd /etc
+# Edit files...
+popd        # Return to previous directory
+```
+
+### Multiple Directories
+
+```bash
+pushd /var/log
+pushd /etc
+pushd /usr/local
+
+dirs -v
+#  0  /usr/local
+#  1  /etc
+#  2  /var/log
+#  3  ~
+
+# Jump to any
+pushd +2    # Go to /var/log
+```
+
+### Stack Manipulation Only
+
+```bash
+pushd -n /tmp     # Add to stack without changing
+dirs              # Shows /tmp in stack
+pwd               # Still in current directory
+```
+
+## Common Patterns
+
+### Save and Restore
+
+```bash
+do_work() {
+    pushd /some/directory > /dev/null
+    # Do work...
+    popd > /dev/null
+}
+```
+
+### Iterate Over Directories
+
+```bash
+for dir in ~/project1 ~/project2 ~/project3; do
+    pushd "$dir" > /dev/null
+    make clean
+    popd > /dev/null
+done
+```
+
+### Toggle Between Two Directories
+
+```bash
+pushd /path/one
+pushd /path/two
+
+# Toggle
+pushd +1    # To /path/one
+pushd +1    # Back to /path/two
+```
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | Success |
+| 1 | Directory not found, stack empty, or invalid index |
+
+## Comparison with cd
+
+| Command | Remembers | Multiple |
+|---------|-----------|----------|
+| `cd -` | Previous only | No |
+| `pushd/popd` | Whole stack | Yes |
+
+## See Also
+
+- [cd](/docs/builtins/cd) - Change directory
+- [pwd](/docs/builtins/pwd) - Print working directory

@@ -1,0 +1,235 @@
+# wait
+
+Wait for processes to complete.
+
+**Source:** `src/execution/builtins.f90:1286-1345`
+
+## Synopsis
+
+```bash
+wait [pid|jobspec ...]
+```
+
+## Description
+
+The `wait` builtin pauses execution until specified background processes complete. Without arguments, it waits for all background jobs.
+
+## Usage
+
+### Wait for All Jobs
+
+```bash
+./task1 &
+./task2 &
+./task3 &
+
+wait
+echo "All tasks complete"
+```
+
+### Wait for Specific PID
+
+```bash
+./process &
+pid=$!
+
+wait $pid
+echo "Process $pid exited with status $?"
+```
+
+### Wait for Job
+
+```bash
+./task &
+# [1] 12345
+
+wait %1
+```
+
+### Multiple Waits
+
+```bash
+./task1 & pid1=$!
+./task2 & pid2=$!
+
+wait $pid1
+status1=$?
+
+wait $pid2
+status2=$?
+```
+
+## Examples
+
+### Parallel Processing
+
+```bash
+#!/usr/bin/env fortsh
+
+for file in *.txt; do
+    process_file "$file" &
+done
+
+wait
+echo "All files processed"
+```
+
+### With Exit Status
+
+```bash
+./might_fail &
+pid=$!
+
+wait $pid
+status=$?
+
+if [[ $status -eq 0 ]]; then
+    echo "Success"
+else
+    echo "Failed with status $status"
+fi
+```
+
+### Limited Parallelism
+
+```bash
+#!/usr/bin/env fortsh
+max_jobs=4
+jobs_running=0
+
+for task in "${tasks[@]}"; do
+    run_task "$task" &
+    ((jobs_running++))
+
+    if [[ $jobs_running -ge $max_jobs ]]; then
+        wait -n   # Wait for any one job
+        ((jobs_running--))
+    fi
+done
+
+wait   # Wait for remaining
+```
+
+### Timeout Pattern
+
+```bash
+./long_process &
+pid=$!
+
+# Check periodically
+timeout=30
+elapsed=0
+
+while kill -0 $pid 2>/dev/null; do
+    if [[ $elapsed -ge $timeout ]]; then
+        kill $pid
+        echo "Timeout"
+        break
+    fi
+    sleep 1
+    ((elapsed++))
+done
+
+wait $pid
+```
+
+### Error Collection
+
+```bash
+pids=()
+for cmd in "${commands[@]}"; do
+    $cmd &
+    pids+=($!)
+done
+
+failed=0
+for pid in "${pids[@]}"; do
+    wait $pid || ((failed++))
+done
+
+echo "$failed commands failed"
+```
+
+## Return Value
+
+`wait` returns the exit status of the waited process:
+
+```bash
+(exit 42) &
+wait $!
+echo $?    # 42
+```
+
+For signal termination:
+
+```bash
+# If killed by signal N, exit status is 128 + N
+./process &
+pid=$!
+kill -9 $pid
+wait $pid
+echo $?    # 137 (128 + 9)
+```
+
+## Implementation
+
+**Source:** builtins.f90:1286-1345
+
+- No args: waits for all background jobs
+- With PID: uses `c_waitpid()` blocking
+- With jobspec: finds job, waits for its PGID
+- Exit status from `WEXITSTATUS()` or `WTERMSIG() + 128`
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | All processes exited successfully |
+| 0-255 | Exit status of last waited process |
+| 127 | PID not found |
+| 128+N | Process killed by signal N |
+
+## Notes
+
+- Only waits for children of current shell
+- Cannot wait for grandchildren
+- Job must be background job of this shell
+- `wait` is interruptible by signals
+
+## Common Patterns
+
+### Fork-Join
+
+```bash
+# Fork
+./worker1 &
+./worker2 &
+./worker3 &
+
+# Join
+wait
+```
+
+### Pipeline with Status
+
+```bash
+cmd1 | cmd2 | cmd3
+
+# Get status of all pipeline components
+echo "${PIPESTATUS[@]}"
+```
+
+### Background with Notification
+
+```bash
+{
+    ./long_task
+    echo "Task complete" >> /tmp/notifications
+} &
+```
+
+## See Also
+
+- [Background Jobs](/docs/job-control/background) - Running jobs
+- [jobs](/docs/builtins/jobs) - List jobs
+- [kill](/docs/builtins/kill) - Send signals

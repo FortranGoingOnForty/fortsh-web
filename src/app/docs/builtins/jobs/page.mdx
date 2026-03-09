@@ -1,0 +1,183 @@
+# jobs
+
+List background jobs.
+
+**Source:** `src/execution/builtins.f90:778-791`, `src/execution/jobs.f90`
+
+## Synopsis
+
+```bash
+jobs [-lnprs] [jobspec ...]
+```
+
+## Description
+
+The `jobs` builtin displays the status of jobs started in the current shell session.
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `-l` | Include process IDs |
+| `-n` | Only jobs with changed status |
+| `-p` | Process IDs only |
+| `-r` | Running jobs only |
+| `-s` | Stopped jobs only |
+
+## Usage
+
+### List All Jobs
+
+```bash
+sleep 100 &
+sleep 200 &
+vim &
+# Press Ctrl+Z in vim
+
+jobs
+# [1]   Running                 sleep 100 &
+# [2]-  Running                 sleep 200 &
+# [3]+  Stopped                 vim
+```
+
+### With Process IDs
+
+```bash
+jobs -l
+# [1]   12345 Running          sleep 100 &
+# [2]-  12346 Running          sleep 200 &
+# [3]+  12347 Stopped          vim
+```
+
+### PIDs Only
+
+```bash
+jobs -p
+# 12345
+# 12346
+# 12347
+```
+
+### Running Jobs Only
+
+```bash
+jobs -r
+# [1]   Running                 sleep 100 &
+# [2]-  Running                 sleep 200 &
+```
+
+### Stopped Jobs Only
+
+```bash
+jobs -s
+# [3]+  Stopped                 vim
+```
+
+## Job Indicators
+
+| Symbol | Meaning |
+|--------|---------|
+| `+` | Current job (default for fg/bg) |
+| `-` | Previous job |
+| (none) | Other jobs |
+
+## Job States
+
+| State | Description |
+|-------|-------------|
+| Running | Executing in background |
+| Stopped | Suspended (Ctrl+Z or SIGSTOP) |
+| Done | Completed (shown once) |
+
+## Examples
+
+### Check for Running Jobs
+
+```bash
+if jobs -r | grep -q .; then
+    echo "Background jobs running"
+fi
+```
+
+### Count Jobs
+
+```bash
+num_jobs=$(jobs | wc -l)
+echo "$num_jobs jobs"
+```
+
+### Kill All Jobs
+
+```bash
+kill $(jobs -p)
+```
+
+### Wait for All Jobs
+
+```bash
+while jobs | grep -q Running; do
+    sleep 1
+done
+echo "All jobs done"
+```
+
+### Specific Job
+
+```bash
+jobs %1
+# [1]+  Running                 sleep 100 &
+
+jobs %vim
+# Shows job with "vim" in command
+```
+
+## Job Specification
+
+| Spec | Meaning |
+|------|---------|
+| `%n` | Job number n |
+| `%%` | Current job |
+| `%+` | Current job |
+| `%-` | Previous job |
+| `%string` | Job starting with string |
+| `%?string` | Job containing string |
+
+## Implementation
+
+**Source:** jobs.f90
+
+Jobs are stored in `shell%jobs(MAX_JOBS)` array with:
+- Job ID
+- Process group ID
+- Command line
+- State (RUNNING, STOPPED, DONE)
+- Notification flag
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | Success |
+| 1 | Invalid job specification |
+
+## Notes
+
+- Jobs are shell-specific (not system-wide)
+- Done jobs are reported once then removed
+- Maximum jobs limited by `MAX_JOBS`
+- Job numbers are reused after completion
+
+## Related Commands
+
+| Command | Purpose |
+|---------|---------|
+| `fg` | Bring to foreground |
+| `bg` | Continue in background |
+| `kill` | Send signal |
+| `wait` | Wait for completion |
+
+## See Also
+
+- [Background Jobs](/docs/job-control/background) - Full job control docs
+- [fg / bg](/docs/builtins/fg) - Foreground/background
+- [kill](/docs/builtins/kill) - Send signals

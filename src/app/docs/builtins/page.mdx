@@ -25,7 +25,7 @@ fortsh includes 58 builtin commands. Builtins are executed directly by the shell
 | [declare](/docs/builtins/declare) | Declare variables | `builtins.f90:builtin_declare` |
 | [local](/docs/builtins/local) | Function-local variables | `builtins.f90:builtin_local` |
 | printenv | Print environment | `builtins.f90:builtin_printenv` |
-| shift | Shift positional params | `builtins.f90:builtin_shift` |
+| [shift](/docs/builtins/shift) | Shift positional params | `builtins.f90:builtin_shift` |
 
 ### I/O & Output
 | Command | Description | Source |
@@ -37,20 +37,19 @@ fortsh includes 58 builtin commands. Builtins are executed directly by the shell
 ### Job Control
 | Command | Description | Source |
 |---------|-------------|--------|
-| jobs | List jobs | `builtins.f90:builtin_jobs` |
-| fg | Foreground job | `builtins.f90:builtin_fg` |
-| bg | Background job | `builtins.f90:builtin_bg` |
-| kill | Send signal | `builtins.f90:builtin_kill` |
-| wait | Wait for jobs | `builtins.f90:builtin_wait` |
+| [jobs](/docs/builtins/jobs) | List jobs | `builtins.f90:builtin_jobs` |
+| [fg / bg](/docs/builtins/fg) | Foreground/background job | `builtins.f90:builtin_fg` |
+| [kill](/docs/builtins/kill) | Send signal | `builtins.f90:builtin_kill` |
+| [wait](/docs/builtins/wait) | Wait for jobs | `builtins.f90:builtin_wait` |
 | coproc | Coprocess | `builtins.f90:builtin_coproc` |
 
 ### Scripting & Control
 | Command | Description | Source |
 |---------|-------------|--------|
 | exit | Exit shell | `builtins.f90:builtin_exit` |
-| source / . | Execute file | `builtins.f90:builtin_source` |
-| eval | Evaluate string | `eval_builtin.f90` |
-| exec | Replace shell | `builtins.f90:builtin_exec` |
+| [source / .](/docs/builtins/source) | Execute file | `builtins.f90:builtin_source` |
+| [eval](/docs/builtins/eval) | Evaluate string | `eval_builtin.f90` |
+| [exec](/docs/builtins/exec) | Replace shell | `builtins.f90:builtin_exec` |
 | return | Return from function | `builtins.f90:builtin_return` |
 | break | Break from loop | `builtins.f90:builtin_break` |
 | continue | Continue loop | `builtins.f90:builtin_continue` |
@@ -58,29 +57,28 @@ fortsh includes 58 builtin commands. Builtins are executed directly by the shell
 ### Command Identification
 | Command | Description | Source |
 |---------|-------------|--------|
-| type | Show command type | `command_builtin.f90` |
+| [type](/docs/builtins/type) | Show command type | `command_builtin.f90` |
 | which | Find command | `command_builtin.f90` |
-| command | Execute bypassing functions | `command_builtin.f90` |
-| hash | Command cache | `builtins.f90:builtin_hash` |
+| [command](/docs/builtins/command) | Execute bypassing functions | `command_builtin.f90` |
+| [hash](/docs/builtins/hash) | Command cache | `builtins.f90:builtin_hash` |
 
 ### Testing & Conditionals
 | Command | Description | Source |
 |---------|-------------|--------|
 | [test / \[](/docs/builtins/test) | Test expression | `test_builtin.f90` |
 | [[\[](/docs/builtins/test) | Advanced test | `advanced_test.f90` |
-| getopts | Parse options | `getopts_builtin.f90` |
+| [getopts](/docs/builtins/getopts) | Parse options | `getopts_builtin.f90` |
 
 ### Aliases & Abbreviations
 | Command | Description | Source |
 |---------|-------------|--------|
-| alias | Define alias | `builtins.f90:builtin_alias` |
-| unalias | Remove alias | `builtins.f90:builtin_unalias` |
+| [alias / unalias](/docs/builtins/alias) | Define/remove alias | `builtins.f90:builtin_alias` |
 | abbr | Abbreviations (fish-style) | `builtins.f90:builtin_abbr` |
 
 ### History & Completion
 | Command | Description | Source |
 |---------|-------------|--------|
-| history | Command history | `builtins.f90:builtin_history` |
+| [history](/docs/builtins/history) | Command history | `builtins.f90:builtin_history` |
 | fc | Edit history | `builtins.f90:builtin_fc` |
 | complete | Define completions | `builtins.f90:builtin_complete` |
 | compgen | Generate completions | `builtins.f90:builtin_compgen` |
@@ -88,22 +86,22 @@ fortsh includes 58 builtin commands. Builtins are executed directly by the shell
 ### Shell Options
 | Command | Description | Source |
 |---------|-------------|--------|
-| set | Set options | `shell_options.f90` |
-| shopt | Shell options | `shell_options.f90` |
+| [set](/docs/builtins/set) | Set options | `shell_options.f90` |
+| [shopt](/docs/builtins/shopt) | Shell options | `shell_options.f90` |
 | config | Configuration | `builtins.f90:builtin_config` |
 
 ### Signals
 | Command | Description | Source |
 |---------|-------------|--------|
-| trap | Set signal handlers | `builtins.f90:builtin_trap` |
+| [trap](/docs/builtins/trap) | Set signal handlers | `builtins.f90:builtin_trap` |
 
 ### System & Debugging
 | Command | Description | Source |
 |---------|-------------|--------|
-| umask | File creation mask | `builtins.f90:builtin_umask` |
+| [umask](/docs/builtins/umask) | File creation mask | `builtins.f90:builtin_umask` |
 | ulimit | Resource limits | `builtins.f90:builtin_ulimit` |
 | times | Process times | `builtins.f90:builtin_times` |
-| let | Arithmetic evaluation | `builtins.f90:builtin_let` |
+| [let](/docs/builtins/let) | Arithmetic evaluation | `builtins.f90:builtin_let` |
 | perf | Performance metrics | `builtins.f90:builtin_perf` |
 | memory | Memory statistics | `builtins.f90:builtin_memory` |
 

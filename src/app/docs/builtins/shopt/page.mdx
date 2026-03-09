@@ -1,0 +1,208 @@
+# shopt
+
+Set and unset bash-style shell options.
+
+**Source:** `src/scripting/shell_options.f90:245-280`
+
+## Synopsis
+
+```bash
+shopt [-pqsu] [optname ...]
+```
+
+## Description
+
+The `shopt` builtin manages bash-specific shell options that control globbing, pattern matching, and other behaviors.
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `-s` | Enable (set) option |
+| `-u` | Disable (unset) option |
+| `-p` | Print in reusable format |
+| `-q` | Quiet mode (exit status only) |
+
+## Supported Options
+
+| Option | Description |
+|--------|-------------|
+| `nullglob` | Patterns matching nothing expand to empty |
+| `failglob` | Patterns matching nothing cause error |
+| `globstar` | `**` matches directories recursively |
+| `nocaseglob` | Case-insensitive globbing |
+| `nocasematch` | Case-insensitive pattern matching |
+| `extglob` | Extended glob patterns |
+| `dotglob` | Include dotfiles in glob patterns |
+
+## Usage
+
+### Enable Option
+
+```bash
+shopt -s nullglob
+shopt -s extglob globstar
+```
+
+### Disable Option
+
+```bash
+shopt -u nullglob
+```
+
+### Check Option
+
+```bash
+shopt -q nullglob && echo "nullglob is on"
+```
+
+### Show Options
+
+```bash
+shopt              # Show all options
+shopt -p           # Reusable format
+shopt globstar     # Show specific option
+```
+
+## Option Details
+
+### nullglob
+
+Without: Pattern expands to literal if no matches
+With: Pattern expands to nothing if no matches
+
+```bash
+shopt -s nullglob
+for f in *.nonexistent; do
+    echo "$f"      # Loop doesn't execute
+done
+```
+
+### failglob
+
+Pattern matching nothing causes error:
+
+```bash
+shopt -s failglob
+ls *.nonexistent   # Error: no match
+```
+
+### globstar
+
+Recursive matching with `**`:
+
+```bash
+shopt -s globstar
+ls **/*.txt        # All .txt files in all subdirectories
+```
+
+### dotglob
+
+Include hidden files in globs:
+
+```bash
+shopt -s dotglob
+ls *               # Includes .hidden files
+```
+
+### extglob
+
+Extended pattern matching:
+
+```bash
+shopt -s extglob
+
+# Extended patterns:
+# ?(pattern)  - Zero or one
+# *(pattern)  - Zero or more
+# +(pattern)  - One or more
+# @(pattern)  - Exactly one
+# !(pattern)  - Anything except
+
+ls *.@(txt|md)     # .txt or .md files
+ls !(*.bak)        # Everything except .bak
+```
+
+### nocaseglob
+
+Case-insensitive file matching:
+
+```bash
+shopt -s nocaseglob
+ls *.TXT           # Matches .txt, .TXT, .Txt
+```
+
+### nocasematch
+
+Case-insensitive pattern matching in `[[` and `case`:
+
+```bash
+shopt -s nocasematch
+[[ "HELLO" == hello ]] && echo "match"    # Matches
+case "YES" in
+    yes) echo "matched" ;;
+esac
+```
+
+## Examples
+
+### Safe Glob Handling
+
+```bash
+shopt -s nullglob
+files=(*.txt)
+if [[ ${#files[@]} -eq 0 ]]; then
+    echo "No .txt files found"
+fi
+```
+
+### Recursive File Processing
+
+```bash
+shopt -s globstar
+for file in **/*.py; do
+    python -m py_compile "$file"
+done
+```
+
+### Case-Insensitive Matching
+
+```bash
+shopt -s nocasematch
+read -p "Continue? [y/n] " answer
+if [[ "$answer" == y ]]; then
+    echo "Continuing..."
+fi
+```
+
+## Configuration
+
+Add to `~/.fortshrc`:
+
+```bash
+# Enable useful options
+shopt -s globstar      # ** recursive matching
+shopt -s nullglob      # Empty glob = no match
+shopt -s extglob       # Extended patterns
+shopt -s nocasematch   # Case-insensitive matching
+```
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | Success, or option is set (with -q) |
+| 1 | Option not set (with -q), or invalid option |
+
+## Differences from set
+
+| `set` | `shopt` |
+|-------|---------|
+| POSIX options | Bash extensions |
+| `-o` syntax | Direct option names |
+| `$-` reflects | Not in `$-` |
+
+## See Also
+
+- [set](/docs/builtins/set) - POSIX shell options
+- [Expansion](/docs/syntax/expansion) - Pattern expansion

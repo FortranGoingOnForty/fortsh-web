@@ -1,0 +1,200 @@
+# set
+
+Set or unset shell options and positional parameters.
+
+**Source:** `src/scripting/shell_options.f90:47-242`
+
+## Synopsis
+
+```bash
+set [+-abefhkmnptuvxBCHP] [+-o option] [arg ...]
+set --
+set -
+```
+
+## Description
+
+The `set` builtin modifies shell behavior through options and manages positional parameters.
+
+## Options
+
+### Short Options
+
+| Option | Long Form | Description |
+|--------|-----------|-------------|
+| `-a` | `allexport` | Export all variables automatically |
+| `-e` | `errexit` | Exit on command failure |
+| `-f` | `noglob` | Disable pathname expansion |
+| `-h` | `hashall` | Hash commands on first use |
+| `-m` | `monitor` | Enable job control |
+| `-n` | `noexec` | Read commands but don't execute |
+| `-u` | `nounset` | Error on unset variables |
+| `-v` | `verbose` | Print input lines |
+| `-x` | `xtrace` | Print commands before execution |
+| `-B` | `braceexpand` | Enable brace expansion |
+| `-C` | `noclobber` | Don't overwrite files with > |
+| `-H` | `histexpand` | Enable history expansion |
+| `-P` | `physical` | Use physical directory structure |
+
+### Enable/Disable
+
+```bash
+set -e      # Enable errexit
+set +e      # Disable errexit
+```
+
+### Long Options
+
+```bash
+set -o errexit      # Enable
+set +o errexit      # Disable
+set -o              # List all options
+```
+
+## Positional Parameters
+
+### Set Parameters
+
+```bash
+set -- arg1 arg2 arg3
+echo $1    # arg1
+echo $2    # arg2
+echo $@    # arg1 arg2 arg3
+```
+
+### Clear Parameters
+
+```bash
+set --
+echo $#    # 0
+```
+
+### From Array
+
+```bash
+arr=(one two three)
+set -- "${arr[@]}"
+```
+
+## Examples
+
+### Error Handling
+
+```bash
+#!/usr/bin/env fortsh
+set -euo pipefail
+
+# Script exits on:
+# - Any command failure (-e)
+# - Use of unset variable (-u)
+# - Pipeline failure (-o pipefail)
+```
+
+### Debug Mode
+
+```bash
+set -x
+echo "This will be traced"
+# + echo 'This will be traced'
+# This will be traced
+set +x
+```
+
+### Safe Scripts
+
+```bash
+set -euo pipefail
+IFS=$'\n\t'
+
+# Strict mode for scripts
+```
+
+### Prevent File Overwrite
+
+```bash
+set -C
+echo "data" > existing.txt    # Error if file exists
+echo "data" >| existing.txt   # Force overwrite with >|
+```
+
+## Common Option Combinations
+
+### Strict Mode
+
+```bash
+set -euo pipefail
+```
+
+### Debug Mode
+
+```bash
+set -x
+```
+
+### Interactive Safety
+
+```bash
+set -o noclobber
+set -o notify
+```
+
+## Checking Options
+
+### In Script
+
+```bash
+if [[ $- == *e* ]]; then
+    echo "errexit is enabled"
+fi
+```
+
+### Current Options
+
+```bash
+echo $-           # Shows enabled short options
+set -o            # Shows all options with on/off
+```
+
+## Implementation Details
+
+**Source:** shell_options.f90:47-242
+
+Supported `-o` options:
+- `allexport`, `errexit`, `hashall`, `monitor`
+- `noclobber`, `noexec`, `noglob`, `nounset`
+- `verbose`, `xtrace`, `pipefail`, `posix`
+- `braceexpand`, `histexpand`, `physical`
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | Success |
+| 1 | Invalid option |
+
+## Special Forms
+
+```bash
+set -          # Disable -x and -v
+set --         # End of options marker
+set            # Display all variables (no args)
+```
+
+## Script Template
+
+```bash
+#!/usr/bin/env fortsh
+set -euo pipefail
+
+# Your script here...
+
+cleanup() {
+    # Cleanup code
+}
+trap cleanup EXIT
+```
+
+## See Also
+
+- [shopt](/docs/builtins/shopt) - Shell options (bash-style)
+- [Special Variables](/docs/variables/special) - `$-` option flags

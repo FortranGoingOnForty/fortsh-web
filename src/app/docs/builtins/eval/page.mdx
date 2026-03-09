@@ -1,0 +1,214 @@
+# eval
+
+Execute arguments as a shell command.
+
+**Source:** `src/execution/eval_builtin.f90:10-38`
+
+## Synopsis
+
+```bash
+eval [string ...]
+```
+
+## Description
+
+The `eval` builtin concatenates its arguments, separated by spaces, and executes the result as a shell command. This allows for dynamic command construction and indirect variable access.
+
+## Usage
+
+### Basic Evaluation
+
+```bash
+cmd="echo hello"
+eval $cmd
+# hello
+```
+
+### Variable Construction
+
+```bash
+name="PATH"
+eval echo \$$name
+# /usr/bin:/bin:...
+```
+
+### Dynamic Variable Names
+
+```bash
+prefix="user"
+eval "${prefix}_name='John'"
+echo $user_name
+# John
+```
+
+## Examples
+
+### Indirect Variable Access
+
+```bash
+get_value() {
+    local varname="$1"
+    eval echo "\$$varname"
+}
+
+myvar="hello"
+get_value myvar
+# hello
+```
+
+### Command Building
+
+```bash
+# Build command with conditionals
+cmd="ls"
+[[ $verbose ]] && cmd+=" -l"
+[[ $all ]]     && cmd+=" -a"
+eval $cmd
+```
+
+### Array From String
+
+```bash
+items="one two three"
+eval "arr=($items)"
+echo "${arr[1]}"
+# two
+```
+
+### Dynamic Assignment
+
+```bash
+set_var() {
+    local name="$1"
+    local value="$2"
+    eval "$name='$value'"
+}
+
+set_var greeting "Hello, World"
+echo $greeting
+# Hello, World
+```
+
+### Pipeline Construction
+
+```bash
+build_pipeline() {
+    local cmd="cat file.txt"
+    [[ $filter ]] && cmd+=" | grep '$filter'"
+    [[ $sort ]]   && cmd+=" | sort"
+    eval $cmd
+}
+```
+
+## Security Considerations
+
+**eval is dangerous with untrusted input!**
+
+```bash
+# DANGEROUS - command injection
+user_input="; rm -rf /"
+eval "echo $user_input"   # Executes rm!
+
+# SAFER - validate input first
+if [[ $user_input =~ ^[a-zA-Z0-9_]+$ ]]; then
+    eval "echo $user_input"
+fi
+```
+
+### Safe Alternatives
+
+```bash
+# Instead of eval for indirect access:
+declare -n ref=varname    # Nameref (if supported)
+echo "$ref"
+
+# Instead of eval for arrays:
+read -ra arr <<< "$string"
+```
+
+## When to Use eval
+
+Appropriate uses:
+- Indirect variable expansion
+- Dynamic command generation from trusted sources
+- Complex quoting scenarios
+- Shell-generated code execution
+
+Avoid when:
+- User input is involved
+- Simpler alternatives exist
+- Security is a concern
+
+## Implementation
+
+**Source:** eval_builtin.f90:10-38
+
+```fortran
+subroutine execute_eval(cmd, shell)
+  ! Concatenate all arguments
+  ! Parse as shell command
+  ! Execute in current context
+end subroutine
+```
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | Success (or empty string) |
+| Other | Exit status of evaluated command |
+
+## Common Patterns
+
+### Variable Indirection
+
+```bash
+# Get value
+indirect() {
+    eval echo "\"\$$1\""
+}
+
+# Set value
+set_indirect() {
+    eval "$1=\"\$2\""
+}
+```
+
+### Export Dynamic Variable
+
+```bash
+export_var() {
+    local name="$1"
+    local value="$2"
+    eval "export $name='$value'"
+}
+```
+
+### Parse Key=Value Pairs
+
+```bash
+while IFS='=' read -r key value; do
+    eval "$key='$value'"
+done < config.txt
+```
+
+## Quoting with eval
+
+```bash
+# Single expansion
+eval echo '$HOME'        # Literal $HOME
+eval echo "\$HOME"       # Expands $HOME
+
+# Double expansion
+var='$HOME'
+eval echo $var           # Expands to home directory
+
+# Preserve spaces
+text="hello   world"
+eval "echo \"$text\""    # Preserves spacing
+```
+
+## See Also
+
+- [exec](/docs/builtins/exec) - Replace shell with command
+- [source](/docs/builtins/source) - Execute file in current shell

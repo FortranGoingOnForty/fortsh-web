@@ -1,0 +1,200 @@
+# readonly
+
+Mark variables as read-only.
+
+**Source:** `src/execution/builtins.f90`
+
+## Synopsis
+
+```bash
+readonly [-aAfp] [name[=value] ...]
+```
+
+## Description
+
+The `readonly` builtin marks variables or functions as read-only. Once marked, their values cannot be changed or unset.
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `-a` | Apply to indexed arrays |
+| `-A` | Apply to associative arrays |
+| `-f` | Apply to functions |
+| `-p` | Print all readonly variables |
+
+## Usage
+
+### Make Variable Readonly
+
+```bash
+readonly PI=3.14159
+readonly VERSION="1.0.0"
+
+PI=3   # Error: PI is readonly
+```
+
+### Mark Existing Variable
+
+```bash
+config="/etc/app.conf"
+readonly config
+```
+
+### List Readonly Variables
+
+```bash
+readonly -p
+# declare -r PI="3.14159"
+# declare -r VERSION="1.0.0"
+```
+
+### Readonly Arrays
+
+```bash
+readonly -a COLORS=(red green blue)
+COLORS[0]=yellow   # Error
+
+readonly -A CONFIG=([host]=localhost [port]=8080)
+CONFIG[host]=other   # Error
+```
+
+### Readonly Functions
+
+```bash
+critical_func() {
+    echo "Don't modify me"
+}
+readonly -f critical_func
+```
+
+## Examples
+
+### Constants
+
+```bash
+readonly TRUE=0
+readonly FALSE=1
+readonly NULL=""
+
+# Use in conditionals
+[[ $result -eq $TRUE ]] && echo "Success"
+```
+
+### Configuration
+
+```bash
+# Set once at startup
+readonly CONFIG_DIR="/etc/myapp"
+readonly LOG_DIR="/var/log/myapp"
+readonly DATA_DIR="/var/lib/myapp"
+```
+
+### Script Protection
+
+```bash
+#!/usr/bin/env fortsh
+readonly SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+readonly SCRIPT_NAME="$(basename "$0")"
+
+# These can't be accidentally modified
+```
+
+### Environment Constants
+
+```bash
+# Protect critical environment
+readonly PATH
+readonly HOME
+readonly USER
+```
+
+## Behavior
+
+### Cannot Unset
+
+```bash
+readonly var="value"
+unset var
+# Error: var is readonly
+```
+
+### Cannot Modify
+
+```bash
+readonly arr=(1 2 3)
+arr+=(4)           # Error
+arr[0]=99          # Error
+unset 'arr[1]'     # Error
+```
+
+### Inheritable
+
+Readonly status is not inherited by child processes.
+
+```bash
+readonly SECRET="value"
+bash -c 'echo $SECRET; SECRET=new'
+# Prints "value", then can modify in subshell
+```
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | Success |
+| 1 | Invalid option |
+| 1 | Variable not found (with specific name) |
+
+## Common Patterns
+
+### Module Constants
+
+```bash
+# mymodule.sh
+readonly MYMODULE_VERSION="2.0"
+readonly MYMODULE_AUTHOR="John"
+
+mymodule_init() { ... }
+mymodule_run() { ... }
+```
+
+### Immutable Configuration
+
+```bash
+load_config() {
+    source config.sh
+    # Lock down after loading
+    readonly DB_HOST DB_PORT DB_USER
+}
+```
+
+### Prevent Accidents
+
+```bash
+# Protect against common mistakes
+readonly IFS
+readonly TERM
+readonly SHELL
+```
+
+## Notes
+
+- Readonly is permanent for shell session
+- Cannot "un-readonly" a variable
+- Equivalent to `declare -r`
+- Readonly functions prevent redefinition
+
+## Comparison
+
+| Command | Effect |
+|---------|--------|
+| `readonly var` | Can't modify or unset |
+| `declare -r var` | Same as readonly |
+| `local -r var` | Readonly local in function |
+
+## See Also
+
+- [declare](/docs/builtins/declare) - Declare with attributes
+- [unset](/docs/builtins/unset) - Remove variables
+- [export](/docs/builtins/export) - Export variables

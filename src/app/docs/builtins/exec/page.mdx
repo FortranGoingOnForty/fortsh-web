@@ -1,0 +1,212 @@
+# exec
+
+Replace the shell with another command.
+
+**Source:** `src/execution/builtins.f90:2541-2654`
+
+## Synopsis
+
+```bash
+exec [-cl] [-a name] [command [arguments]]
+exec redirections
+```
+
+## Description
+
+The `exec` builtin replaces the current shell process with a new command. If no command is given, redirections are applied to the current shell.
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `-c` | Execute with empty environment |
+| `-l` | Place dash before argv[0] (login shell) |
+| `-a name` | Use name as argv[0] |
+
+## Usage
+
+### Replace Shell
+
+```bash
+exec /bin/bash
+# Current shell is replaced; no return
+```
+
+### With Arguments
+
+```bash
+exec python3 script.py arg1 arg2
+```
+
+### Apply Redirections
+
+```bash
+exec > output.log 2>&1
+# All subsequent output goes to log
+echo "This goes to output.log"
+```
+
+## Examples
+
+### Wrapper Script
+
+```bash
+#!/usr/bin/env fortsh
+# Wrapper that sets up environment then runs real command
+
+export LD_LIBRARY_PATH=/custom/lib:$LD_LIBRARY_PATH
+export CONFIG_PATH=/etc/myapp
+
+exec /usr/bin/myapp "$@"
+# Shell replaced; myapp gets our PID
+```
+
+### Login Shell
+
+```bash
+exec -l /bin/bash
+# Starts bash as login shell
+```
+
+### Custom argv[0]
+
+```bash
+exec -a custom_name /usr/bin/vim
+# vim sees argv[0] as "custom_name"
+```
+
+### Redirect All Output
+
+```bash
+#!/usr/bin/env fortsh
+exec > /var/log/script.log 2>&1
+
+echo "Starting..."    # Goes to log
+ls -la                # Goes to log
+echo "Done."          # Goes to log
+```
+
+### Close File Descriptor
+
+```bash
+exec 3>&-     # Close fd 3
+exec 0<&-     # Close stdin
+```
+
+### Open File Descriptor
+
+```bash
+exec 3> output.txt   # Open fd 3 for writing
+echo "data" >&3      # Write to fd 3
+exec 3>&-            # Close fd 3
+```
+
+## Redirections Only
+
+When no command is given, exec applies redirections to current shell:
+
+```bash
+# Redirect all stderr to file
+exec 2> errors.log
+
+# Read from file as stdin
+exec < input.txt
+
+# Copy stdout to fd 3
+exec 3>&1
+```
+
+## Common Patterns
+
+### Daemonization
+
+```bash
+#!/usr/bin/env fortsh
+# Redirect and exec for daemon
+
+exec > /var/log/daemon.log 2>&1
+exec /usr/bin/daemon --foreground
+```
+
+### Container Entry Point
+
+```bash
+#!/usr/bin/env fortsh
+# Setup then hand off to main process
+
+setup_environment
+load_secrets
+
+exec "$@"   # Run container command
+```
+
+### Script Runner
+
+```bash
+#!/usr/bin/env fortsh
+# Determine interpreter and exec
+
+case "$1" in
+    *.py)  exec python3 "$@" ;;
+    *.rb)  exec ruby "$@" ;;
+    *.sh)  exec bash "$@" ;;
+    *)     exec "$@" ;;
+esac
+```
+
+### Logging Wrapper
+
+```bash
+#!/usr/bin/env fortsh
+# Prepend timestamp to all output
+
+exec > >(while IFS= read -r line; do
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $line"
+done)
+
+exec 2>&1  # Merge stderr
+exec "$@"  # Run command
+```
+
+## Implementation
+
+**Source:** builtins.f90:2541-2654
+
+1. Parse options (-c, -l, -a)
+2. Apply any redirections
+3. If command given:
+   - Search PATH for executable
+   - Call `execvp()` to replace process
+4. If no command:
+   - Redirections persist for current shell
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | Success (redirections only) |
+| 126 | Permission denied |
+| 127 | Command not found |
+| (none) | Process replaced (no return) |
+
+## Notes
+
+- After `exec command`, the shell no longer exists
+- Trap handlers are not executed after exec
+- Redirections persist for shell lifetime
+- Use `exec` in wrappers to avoid extra process
+
+## Differences from Running Command
+
+| Aspect | `./cmd` | `exec ./cmd` |
+|--------|---------|--------------|
+| Process | New child | Replaces shell |
+| Returns | Yes | No |
+| PID | New | Same as shell |
+| Cleanup | Shell runs | None |
+
+## See Also
+
+- [eval](/docs/builtins/eval) - Execute string as command
+- [source](/docs/builtins/source) - Run in current shell
+- [Redirection](/docs/syntax/redirection) - I/O redirection

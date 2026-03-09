@@ -1,0 +1,228 @@
+# getopts
+
+Parse positional parameters as options.
+
+**Source:** `src/scripting/getopts_builtin.f90:13-237`
+
+## Synopsis
+
+```bash
+getopts optstring name [args]
+```
+
+## Description
+
+The `getopts` builtin parses command-line options in shell scripts. It processes options one at a time in a loop, handling option arguments and errors.
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `optstring` | Valid option characters |
+| `name` | Variable to store current option |
+| `args` | Arguments to parse (default: `$@`) |
+
+## Option String Format
+
+| Character | Meaning |
+|-----------|---------|
+| `a` | Option `-a` (no argument) |
+| `a:` | Option `-a` requires argument |
+| `:` (leading) | Silent error mode |
+
+```bash
+# -a, -b, -c requires arg, -d
+getopts "abc:d" opt
+```
+
+## Variables
+
+| Variable | Description |
+|----------|-------------|
+| `OPTIND` | Index of next argument to process |
+| `OPTARG` | Argument for current option |
+| `$name` | Current option character |
+
+## Usage
+
+### Basic Pattern
+
+```bash
+while getopts "abc:" opt; do
+    case $opt in
+        a) echo "Option a" ;;
+        b) echo "Option b" ;;
+        c) echo "Option c with arg: $OPTARG" ;;
+        ?) echo "Invalid option" ;;
+    esac
+done
+shift $((OPTIND - 1))
+# Remaining args in $@
+```
+
+### With Error Handling
+
+```bash
+while getopts ":abc:" opt; do   # Leading : for silent mode
+    case $opt in
+        a) do_a ;;
+        b) do_b ;;
+        c) config="$OPTARG" ;;
+        :) echo "Option -$OPTARG requires argument" >&2; exit 1 ;;
+        ?) echo "Invalid option: -$OPTARG" >&2; exit 1 ;;
+    esac
+done
+```
+
+## Examples
+
+### Script with Options
+
+```bash
+#!/usr/bin/env fortsh
+
+verbose=0
+output=""
+
+while getopts "vo:" opt; do
+    case $opt in
+        v) verbose=1 ;;
+        o) output="$OPTARG" ;;
+        ?) echo "Usage: $0 [-v] [-o output] files..." >&2
+           exit 1 ;;
+    esac
+done
+shift $((OPTIND - 1))
+
+# $@ now contains non-option arguments
+for file in "$@"; do
+    [[ $verbose -eq 1 ]] && echo "Processing $file"
+    # Process file...
+done
+```
+
+### Multiple Arguments
+
+```bash
+#!/usr/bin/env fortsh
+
+files=()
+while getopts "f:" opt; do
+    case $opt in
+        f) files+=("$OPTARG") ;;
+    esac
+done
+
+# Called as: script -f file1 -f file2 -f file3
+for f in "${files[@]}"; do
+    echo "File: $f"
+done
+```
+
+### Help Option
+
+```bash
+#!/usr/bin/env fortsh
+
+usage() {
+    cat << EOF
+Usage: $0 [-h] [-v] [-c config] command
+
+Options:
+  -h        Show help
+  -v        Verbose mode
+  -c FILE   Configuration file
+EOF
+}
+
+while getopts "hvc:" opt; do
+    case $opt in
+        h) usage; exit 0 ;;
+        v) verbose=1 ;;
+        c) config="$OPTARG" ;;
+        ?) usage >&2; exit 1 ;;
+    esac
+done
+```
+
+## Resetting getopts
+
+To parse multiple argument sets:
+
+```bash
+OPTIND=1
+while getopts "ab" opt "$first_args"; do
+    # Process first set
+done
+
+OPTIND=1
+while getopts "xy" opt "$second_args"; do
+    # Process second set
+done
+```
+
+## Error Modes
+
+### Normal Mode (no leading :)
+
+- Invalid option: `opt` = `?`, error printed
+- Missing argument: `opt` = `?`, error printed
+
+### Silent Mode (leading :)
+
+- Invalid option: `opt` = `?`, `OPTARG` = option character
+- Missing argument: `opt` = `:`, `OPTARG` = option character
+
+```bash
+while getopts ":a:b" opt; do
+    case $opt in
+        a) echo "a = $OPTARG" ;;
+        b) echo "flag b" ;;
+        :) echo "Missing arg for -$OPTARG" ;;
+        ?) echo "Unknown: -$OPTARG" ;;
+    esac
+done
+```
+
+## Implementation
+
+**Source:** getopts_builtin.f90:13-237
+
+Key state tracking:
+- `OPTIND` - Next argument index
+- `OPTARG` - Current argument value
+- `OPTPOS` - Position within combined options
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | Option found |
+| 1 | End of options or error |
+
+## Limitations
+
+- Short options only (no `--long-options`)
+- No optional arguments (`a::` not supported)
+- Single-character options only
+
+For long options, consider parsing manually or using external getopt.
+
+## Long Options Workaround
+
+```bash
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -v|--verbose) verbose=1; shift ;;
+        -o|--output)  output="$2"; shift 2 ;;
+        --)           shift; break ;;
+        -*)           echo "Unknown: $1" >&2; exit 1 ;;
+        *)            break ;;
+    esac
+done
+```
+
+## See Also
+
+- [Special Variables](/docs/variables/special) - `$@`, `$#`
+- [shift](/docs/builtins/shift) - Shift positional parameters

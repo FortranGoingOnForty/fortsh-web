@@ -1,0 +1,139 @@
+# let
+
+Evaluate arithmetic expressions.
+
+**Source:** `src/execution/builtins.f90`
+
+## Synopsis
+
+```bash
+let expression [expression ...]
+```
+
+## Description
+
+The `let` builtin evaluates arithmetic expressions. It's equivalent to `(( expression ))` but allows multiple expressions.
+
+## Usage
+
+### Basic Arithmetic
+
+```bash
+let "a = 5 + 3"
+echo $a    # 8
+
+let "b = a * 2"
+echo $b    # 16
+```
+
+### Multiple Expressions
+
+```bash
+let "x = 1" "y = 2" "z = x + y"
+echo $z    # 3
+```
+
+### Without Quotes
+
+```bash
+let a=5
+let b=a+3
+echo $b    # 8
+```
+
+## Operators
+
+| Operator | Description |
+|----------|-------------|
+| `+` `-` | Addition, subtraction |
+| `*` `/` `%` | Multiply, divide, modulo |
+| `**` | Exponentiation |
+| `++` `--` | Increment, decrement |
+| `<<` `>>` | Bit shift |
+| `&` `\|` `^` | Bitwise AND, OR, XOR |
+| `~` | Bitwise NOT |
+| `!` | Logical NOT |
+| `&&` `\|\|` | Logical AND, OR |
+| `<` `>` `<=` `>=` | Comparison |
+| `==` `!=` | Equality |
+| `=` `+=` `-=` etc. | Assignment |
+
+## Examples
+
+### Counter
+
+```bash
+let count=0
+let count++
+let count++
+echo $count    # 2
+```
+
+### Calculations
+
+```bash
+let "result = (5 + 3) * 2"
+echo $result   # 16
+
+let "power = 2 ** 10"
+echo $power    # 1024
+```
+
+### Conditional
+
+```bash
+let "x = 5"
+let "y = (x > 3) ? 1 : 0"
+echo $y    # 1
+```
+
+### Bitwise
+
+```bash
+let "flags = 0"
+let "flags |= 1"      # Set bit 0
+let "flags |= 4"      # Set bit 2
+echo $flags           # 5
+
+let "flags &= ~1"     # Clear bit 0
+echo $flags           # 4
+```
+
+## Comparison with (( ))
+
+```bash
+# Equivalent expressions
+let "x = 5 + 3"
+(( x = 5 + 3 ))
+x=$((5 + 3))
+
+# let allows multiple in one command
+let "a=1" "b=2" "c=a+b"
+```
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | Last expression is non-zero |
+| 1 | Last expression is zero |
+
+```bash
+let "5 > 3"
+echo $?    # 0 (true)
+
+let "3 > 5"
+echo $?    # 1 (false)
+```
+
+## Notes
+
+- Spaces require quoting: `let "a = 5"` not `let a = 5`
+- Variables don't need `$`: `let "a = b + 1"`
+- Leading zeros mean octal: `let "x = 010"` is 8
+- `0x` prefix for hex: `let "x = 0xff"` is 255
+
+## See Also
+
+- [Expansion](/docs/syntax/expansion) - Arithmetic expansion
+- [test](/docs/builtins/test) - Conditional tests

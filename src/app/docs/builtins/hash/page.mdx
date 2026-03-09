@@ -1,0 +1,176 @@
+# hash
+
+Manage the command path cache.
+
+**Source:** `src/execution/builtins.f90:2665-2829`
+
+## Synopsis
+
+```bash
+hash [-lr] [-p path] [-dt] [name ...]
+```
+
+## Description
+
+The `hash` builtin remembers the full pathnames of commands, avoiding PATH searches on subsequent invocations. This speeds up command execution.
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `-r` | Clear (reset) the hash table |
+| `-l` | List in reusable format |
+| `-d` | Delete specific names from hash |
+| `-t` | Print path for each name |
+| `-p path` | Use path for name (don't search) |
+
+## Usage
+
+### View Hash Table
+
+```bash
+hash
+# hits    command
+#    5    /usr/bin/git
+#    3    /usr/bin/ls
+#   12    /usr/bin/grep
+```
+
+### List in Reusable Format
+
+```bash
+hash -l
+# hash -p /usr/bin/git git
+# hash -p /usr/bin/ls ls
+```
+
+### Clear Hash Table
+
+```bash
+hash -r
+```
+
+### Delete Specific Entry
+
+```bash
+hash -d git
+```
+
+### Get Path for Command
+
+```bash
+hash -t git
+# /usr/bin/git
+```
+
+### Force Path
+
+```bash
+hash -p /opt/custom/git git
+```
+
+## Behavior
+
+### Automatic Hashing
+
+When you run a command, fortsh:
+1. Checks the hash table
+2. If not found, searches PATH
+3. Adds found path to hash table
+4. Tracks hit count
+
+### When to Clear
+
+Clear the hash table when:
+- Commands move or are reinstalled
+- PATH changes significantly
+- You get "command not found" for known commands
+
+```bash
+# After installing new software
+hash -r
+
+# After modifying PATH
+export PATH="/new/path:$PATH"
+hash -r
+```
+
+## Examples
+
+### Check Cached Path
+
+```bash
+hash -t python
+# /usr/bin/python
+
+# After installing new Python:
+hash -d python
+hash -t python
+# /usr/local/bin/python
+```
+
+### Performance Comparison
+
+```bash
+# First run: searches PATH
+time ls > /dev/null
+
+# Subsequent runs: uses cached path
+time ls > /dev/null   # Faster
+```
+
+### Script Optimization
+
+```bash
+# Pre-hash frequently used commands
+hash git make gcc
+
+# Clear stale entries
+hash -r
+```
+
+### Check If Cached
+
+```bash
+if hash -t mycommand 2>/dev/null; then
+    echo "mycommand is cached"
+fi
+```
+
+## Implementation
+
+**Source:** builtins.f90:2665-2829
+
+Hash entries are stored with:
+- Command name
+- Full path
+- Hit count
+- Timestamp
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | Success |
+| 1 | Name not found (with -t or -d) |
+
+## Notes
+
+- Hashing is automatic for external commands
+- Builtins and functions are not hashed
+- Relative commands (with `/`) are not hashed
+- Hash is per-session (not persistent)
+
+## Comparison
+
+| Command | Purpose |
+|---------|---------|
+| `hash` | Manage path cache |
+| `type` | Show command type and path |
+| `which` | Find command in PATH |
+| `command -v` | POSIX command location |
+
+## See Also
+
+- [type](/docs/builtins/type) - Show command type
+- [command](/docs/builtins/command) - Run bypassing functions

@@ -1,0 +1,188 @@
+# unset
+
+Remove variables or functions.
+
+**Source:** `src/execution/builtins.f90`
+
+## Synopsis
+
+```bash
+unset [-fv] name [name ...]
+```
+
+## Description
+
+The `unset` builtin removes shell variables or functions. Once unset, the name is no longer defined.
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `-f` | Treat names as functions |
+| `-v` | Treat names as variables (default) |
+
+## Usage
+
+### Unset Variables
+
+```bash
+myvar="value"
+echo $myvar    # value
+
+unset myvar
+echo $myvar    # (empty)
+```
+
+### Unset Multiple
+
+```bash
+unset var1 var2 var3
+```
+
+### Unset Functions
+
+```bash
+myfunc() { echo "hello"; }
+myfunc         # hello
+
+unset -f myfunc
+myfunc         # command not found
+```
+
+## Examples
+
+### Clear Configuration
+
+```bash
+# Reset to defaults
+unset DEBUG VERBOSE CONFIG_PATH
+```
+
+### Cleanup in Script
+
+```bash
+cleanup() {
+    unset password secret_key api_token
+}
+trap cleanup EXIT
+```
+
+### Remove Array Element
+
+```bash
+arr=(a b c d e)
+unset 'arr[2]'       # Remove index 2
+echo "${arr[@]}"     # a b d e
+```
+
+### Remove Entire Array
+
+```bash
+declare -a myarray=(1 2 3)
+unset myarray
+```
+
+### Check and Unset
+
+```bash
+[[ -v myvar ]] && unset myvar
+```
+
+## Behavior
+
+### Readonly Variables
+
+```bash
+readonly CONST=value
+unset CONST
+# Error: CONST is readonly
+```
+
+### Unset in Functions
+
+```bash
+func() {
+    local var="local"
+    unset var      # Unsets local first
+}
+
+var="global"
+func
+echo $var          # global (still exists)
+```
+
+### Environment Variables
+
+```bash
+export PATH="/custom:$PATH"
+unset PATH
+# PATH is now unset (not default)
+```
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | Success |
+| 1 | Invalid option |
+| 1 | Attempting to unset readonly variable |
+
+## Differences from Empty
+
+```bash
+var=""           # var is set to empty string
+unset var        # var is unset (undefined)
+
+# Test difference
+[[ -v var ]]     # true if set (even if empty)
+[[ -z "$var" ]]  # true if empty or unset
+```
+
+## Common Patterns
+
+### Temporary Override
+
+```bash
+# Save, modify, restore
+old_path="$PATH"
+export PATH="/special:$PATH"
+# ... do work ...
+export PATH="$old_path"
+unset old_path
+```
+
+### Clean Environment
+
+```bash
+# Remove potentially problematic variables
+unset LD_PRELOAD LD_LIBRARY_PATH
+```
+
+### Function Cleanup
+
+```bash
+# Remove helper functions after use
+_helper1() { ...; }
+_helper2() { ...; }
+
+main() {
+    _helper1
+    _helper2
+}
+main
+
+unset -f _helper1 _helper2
+```
+
+## Notes
+
+- `unset` does not affect exported status of other processes
+- Cannot unset `$-` or other special parameters
+- Unsetting positional parameters requires `set --`
+- Variable must exist; unsetting undefined variable succeeds silently
+
+## See Also
+
+- [declare](/docs/builtins/declare) - Declare variables
+- [export](/docs/builtins/export) - Export variables
+- [readonly](/docs/builtins/readonly) - Make readonly
