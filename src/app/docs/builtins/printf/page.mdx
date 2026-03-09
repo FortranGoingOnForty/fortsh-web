@@ -1,0 +1,214 @@
+# printf - Formatted Output
+
+Write formatted output.
+
+**Source:** `src/scripting/printf_builtin.f90:builtin_printf`
+
+## Synopsis
+
+```bash
+printf FORMAT [ARGUMENTS...]
+```
+
+## Description
+
+Outputs formatted text according to FORMAT, similar to C's printf. More portable than `echo -e` for escape sequences.
+
+## Format Specifiers
+
+| Specifier | Description |
+|-----------|-------------|
+| `%s` | String |
+| `%d`, `%i` | Signed decimal integer |
+| `%u` | Unsigned decimal integer |
+| `%o` | Unsigned octal |
+| `%x` | Unsigned hexadecimal (lowercase) |
+| `%X` | Unsigned hexadecimal (uppercase) |
+| `%e` | Scientific notation (lowercase e) |
+| `%E` | Scientific notation (uppercase E) |
+| `%f`, `%F` | Floating-point |
+| `%g` | Shorter of %e or %f |
+| `%G` | Shorter of %E or %F |
+| `%c` | Single character |
+| `%%` | Literal percent sign |
+
+## Format Flags
+
+Flags appear between `%` and the specifier:
+
+| Flag | Description |
+|------|-------------|
+| `-` | Left-align (default is right) |
+| `+` | Show sign for positive numbers |
+| ` ` | Space for positive sign |
+| `0` | Zero-pad numbers |
+| `#` | Alternate form (0x for hex, etc.) |
+| `*` | Width/precision from argument |
+
+## Width and Precision
+
+```
+%[flags][width][.precision]specifier
+```
+
+- **Width**: Minimum field width
+- **Precision**:
+  - For strings: maximum characters
+  - For floats: decimal places
+  - For integers: minimum digits
+
+## Escape Sequences
+
+| Sequence | Character |
+|----------|-----------|
+| `\\` | Backslash |
+| `\a` | Alert (bell) |
+| `\b` | Backspace |
+| `\f` | Form feed |
+| `\n` | Newline |
+| `\r` | Carriage return |
+| `\t` | Horizontal tab |
+| `\v` | Vertical tab |
+| `\'` | Single quote |
+| `\"` | Double quote |
+| `\0nnn` | Octal value |
+| `\xHH` | Hexadecimal value |
+
+## Return Value
+
+| Code | Meaning |
+|------|---------|
+| 0 | Success |
+| 1 | Error (invalid format, write failure) |
+
+## Examples
+
+### Basic formatting
+
+```bash
+printf "Hello, %s!\n" "World"
+# Output: Hello, World!
+
+printf "Name: %s, Age: %d\n" "Alice" 30
+# Output: Name: Alice, Age: 30
+```
+
+### Number formatting
+
+```bash
+# Integers
+printf "%d\n" 42        # 42
+printf "%5d\n" 42       # "   42" (width 5)
+printf "%05d\n" 42      # 00042 (zero-padded)
+printf "%-5d|\n" 42     # "42   |" (left-aligned)
+
+# Hexadecimal
+printf "%x\n" 255       # ff
+printf "%X\n" 255       # FF
+printf "%#x\n" 255      # 0xff
+
+# Octal
+printf "%o\n" 8         # 10
+printf "%#o\n" 8        # 010
+```
+
+### Floating-point
+
+```bash
+printf "%f\n" 3.14159       # 3.141590
+printf "%.2f\n" 3.14159     # 3.14
+printf "%8.2f\n" 3.14159    # "    3.14"
+printf "%e\n" 1234.5        # 1.234500e+03
+```
+
+### String formatting
+
+```bash
+printf "%s\n" "hello"       # hello
+printf "%10s\n" "hello"     # "     hello"
+printf "%-10s|\n" "hello"   # "hello     |"
+printf "%.3s\n" "hello"     # hel (max 3 chars)
+```
+
+### Width from argument
+
+```bash
+printf "%*s\n" 10 "hello"   # "     hello" (width=10)
+printf "%.*s\n" 3 "hello"   # hel (precision=3)
+```
+
+### Format reuse
+
+When there are more arguments than format specifiers, the format repeats:
+
+```bash
+printf "%s\n" apple banana cherry
+# apple
+# banana
+# cherry
+
+printf "%d " 1 2 3 4 5
+# 1 2 3 4 5
+```
+
+### Escape sequences
+
+```bash
+printf "Line 1\nLine 2\n"
+printf "Col1\tCol2\tCol3\n"
+printf "Alert: \a"
+```
+
+### Table formatting
+
+```bash
+printf "%-15s %8s %8s\n" "Name" "Size" "Date"
+printf "%-15s %8d %8s\n" "file.txt" 1234 "Mar 9"
+printf "%-15s %8d %8s\n" "data.csv" 56789 "Mar 8"
+
+# Output:
+# Name                Size     Date
+# file.txt            1234    Mar 9
+# data.csv           56789    Mar 8
+```
+
+## Implementation Details
+
+From `printf_builtin.f90`:
+
+```fortran
+! Parse format string character by character
+do while (fmt_pos <= len_trim(format_str))
+    ch = format_str(fmt_pos:fmt_pos)
+    if (ch == '%') then
+        call parse_format_spec(format_str, fmt_pos, spec)
+        call apply_format(spec, args(arg_index), output)
+    else if (ch == '\') then
+        call handle_escape(format_str, fmt_pos, output)
+    else
+        output = output // ch
+    end if
+end do
+```
+
+## Comparison with echo
+
+| Feature | `echo` | `printf` |
+|---------|--------|----------|
+| Trailing newline | Automatic | Manual (`\n`) |
+| Escape sequences | Requires `-e` | Always |
+| Format specifiers | No | Yes |
+| Portability | Varies | Consistent |
+
+## Related Commands
+
+- [echo](/docs/builtins/echo) - Simple output
+- [read](/docs/builtins/read) - Read input
+
+## Notes
+
+- Always include `\n` for newlines; `printf` doesn't add one automatically
+- For portable scripts, prefer `printf` over `echo -e`
+- Arguments are converted to match format specifiers (strings to numbers, etc.)
+- Non-numeric strings become 0 when used with numeric specifiers
+- Quote arguments to preserve whitespace: `printf "%s" "$var"`

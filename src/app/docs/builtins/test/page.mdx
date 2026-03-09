@@ -1,0 +1,243 @@
+# test / [ / [[ - Conditional Expressions
+
+Evaluate conditional expressions.
+
+**Source:** `src/scripting/test_builtin.f90:execute_test_command`
+
+## Synopsis
+
+```bash
+test expression
+[ expression ]
+[[ expression ]]
+```
+
+## Description
+
+Evaluates a conditional expression and returns an exit status of 0 (true) or 1 (false). The `[` command is identical to `test` but requires a closing `]`. The `[[` command is an extended test with additional features.
+
+## File Tests
+
+| Operator | True if... |
+|----------|------------|
+| `-e file` | File exists |
+| `-f file` | Regular file exists |
+| `-d file` | Directory exists |
+| `-L file` | Symbolic link exists |
+| `-h file` | Symbolic link exists (same as -L) |
+| `-b file` | Block device exists |
+| `-c file` | Character device exists |
+| `-p file` | Named pipe (FIFO) exists |
+| `-S file` | Socket exists |
+| `-r file` | File is readable |
+| `-w file` | File is writable |
+| `-x file` | File is executable |
+| `-s file` | File has size > 0 |
+| `-u file` | SUID bit is set |
+| `-g file` | SGID bit is set |
+| `-k file` | Sticky bit is set |
+| `-t fd` | File descriptor is a terminal |
+
+## String Tests
+
+| Operator | True if... |
+|----------|------------|
+| `-z string` | String length is zero |
+| `-n string` | String length is non-zero |
+| `string` | String is non-empty (implicit -n) |
+| `s1 = s2` | Strings are equal |
+| `s1 != s2` | Strings are not equal |
+| `s1 < s2` | s1 sorts before s2 (lexicographic) |
+| `s1 > s2` | s1 sorts after s2 (lexicographic) |
+
+## Numeric Tests
+
+| Operator | True if... |
+|----------|------------|
+| `n1 -eq n2` | Equal |
+| `n1 -ne n2` | Not equal |
+| `n1 -lt n2` | Less than |
+| `n1 -le n2` | Less than or equal |
+| `n1 -gt n2` | Greater than |
+| `n1 -ge n2` | Greater than or equal |
+
+## File Comparison
+
+| Operator | True if... |
+|----------|------------|
+| `f1 -nt f2` | f1 is newer than f2 |
+| `f1 -ot f2` | f1 is older than f2 |
+| `f1 -ef f2` | f1 and f2 are the same file (same inode) |
+
+## Logical Operators (test / [)
+
+| Operator | Meaning |
+|----------|---------|
+| `! expr` | Logical NOT |
+| `expr1 -a expr2` | Logical AND |
+| `expr1 -o expr2` | Logical OR |
+| `( expr )` | Grouping (requires escaping in [ ]) |
+
+## Extended Test [[ ]]
+
+The `[[` command provides additional features:
+
+### Pattern Matching
+
+```bash
+[[ $string == pattern ]]   # Glob pattern match
+[[ $string != pattern ]]   # Glob pattern not match
+```
+
+### Regex Matching
+
+```bash
+[[ $string =~ regex ]]     # POSIX extended regex
+[[ $string !~ regex ]]     # Regex not match
+```
+
+Capture groups are stored in `BASH_REMATCH`:
+- `${BASH_REMATCH[0]}` - Full match
+- `${BASH_REMATCH[1]}` - First capture group
+- etc.
+
+### Logical Operators in [[
+
+```bash
+[[ expr1 && expr2 ]]   # Logical AND (short-circuit)
+[[ expr1 || expr2 ]]   # Logical OR (short-circuit)
+[[ ! expr ]]           # Logical NOT
+```
+
+## Return Value
+
+| Code | Meaning |
+|------|---------|
+| 0 | Expression is true |
+| 1 | Expression is false |
+| 2 | Syntax error |
+
+## Examples
+
+### File tests
+
+```bash
+if [ -f /etc/passwd ]; then
+    echo "File exists"
+fi
+
+if [[ -d "$HOME" && -w "$HOME" ]]; then
+    echo "Home exists and is writable"
+fi
+```
+
+### String tests
+
+```bash
+name="fortsh"
+
+if [ -n "$name" ]; then
+    echo "Name is set"
+fi
+
+if [ "$name" = "fortsh" ]; then
+    echo "It's fortsh!"
+fi
+```
+
+### Numeric tests
+
+```bash
+count=5
+
+if [ "$count" -gt 0 ]; then
+    echo "Count is positive"
+fi
+
+if [[ $count -ge 1 && $count -le 10 ]]; then
+    echo "Count is between 1 and 10"
+fi
+```
+
+### Regex matching
+
+```bash
+email="user@example.com"
+
+if [[ $email =~ ^[a-z]+@[a-z]+\.[a-z]+$ ]]; then
+    echo "Valid email format"
+fi
+
+# With capture groups
+version="v1.2.3"
+if [[ $version =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+    echo "Major: ${BASH_REMATCH[1]}"
+    echo "Minor: ${BASH_REMATCH[2]}"
+    echo "Patch: ${BASH_REMATCH[3]}"
+fi
+```
+
+### Pattern matching
+
+```bash
+file="script.sh"
+
+if [[ $file == *.sh ]]; then
+    echo "Shell script"
+fi
+
+if [[ $file == script.* ]]; then
+    echo "A script file"
+fi
+```
+
+## Implementation Details
+
+From `test_builtin.f90`:
+
+```fortran
+! File test operators
+case ("-e")
+    call stat_file(path, stat_result, errno)
+    result = (errno == 0)
+case ("-f")
+    result = is_regular_file(path)
+case ("-d")
+    result = is_directory(path)
+```
+
+The regex matching uses POSIX extended regular expressions:
+
+```fortran
+! Extended test: regex match with =~
+if (extended .and. operator == "=~") then
+    call regex_match(left_operand, right_operand, matched, captures)
+    if (matched) then
+        ! Store captures in BASH_REMATCH array
+        call set_bash_rematch(captures)
+    end if
+end if
+```
+
+## Differences Between [ ] and [[ ]]
+
+| Feature | `[ ]` | `[[ ]]` |
+|---------|-------|---------|
+| Word splitting | Yes | No |
+| Glob expansion | Yes | No |
+| `&&` / `\|\|` | Use `-a` / `-o` | Native support |
+| Pattern matching | No | Yes (`==`, `!=`) |
+| Regex | No | Yes (`=~`) |
+| Quoting | Often required | Less strict |
+
+## Related Commands
+
+- [if](/docs/control-flow/conditionals) - Conditional execution
+- [case](/docs/control-flow/conditionals) - Pattern matching
+
+## Notes
+
+- For portability, use `[ ]` with `-a` and `-o` operators
+- `[[ ]]` is preferred for complex conditions due to cleaner syntax
+- Always quote variables in `[ ]` to prevent word splitting: `[ "$var" = "value" ]`
+- In `[[ ]]`, quoting is optional for variables: `[[ $var == value ]]`

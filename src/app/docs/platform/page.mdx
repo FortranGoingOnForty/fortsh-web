@@ -1,0 +1,67 @@
+# Platform Notes
+
+fortsh runs on Linux and macOS. This section documents platform-specific behaviors and limitations.
+
+## Supported Platforms
+
+| Platform | Compiler | Status |
+|----------|----------|--------|
+| Linux (x86_64, aarch64) | gfortran | Full support |
+| macOS Intel | gfortran | Full support |
+| macOS Apple Silicon | flang-new (LLVM) | Limited (127-char commands) |
+| BSD | gfortran | Partial (POSIX interfaces) |
+
+## Topics
+
+- [macOS Apple Silicon](/docs/platform/macos-arm) - ARM64-specific limitations
+- [macOS Intel](/docs/platform/macos-intel) - Intel Mac notes
+- [Linux](/docs/platform/linux) - Linux specifics
+- [Limitations](/docs/platform/limitations) - Known limitations
+
+## Quick Summary
+
+### Linux
+
+No significant limitations. Full feature set available.
+
+Build:
+```bash
+make           # Uses gfortran
+sudo make install
+```
+
+### macOS Intel
+
+Works fully with gfortran. Requires `-frecursive` flag (handled by Makefile).
+
+Build:
+```bash
+brew install gcc  # for gfortran
+make
+sudo make install
+```
+
+### macOS Apple Silicon
+
+Uses flang-new from LLVM due to gfortran bugs. Has a **127-character command line limit**.
+
+Build:
+```bash
+brew install llvm
+export PATH="/opt/homebrew/opt/llvm/bin:$PATH"
+make
+sudo make install
+```
+
+## Compiler Issues
+
+fortsh is written in Fortran 2018. Compiler compatibility varies:
+
+| Compiler | Platform | Issues |
+|----------|----------|--------|
+| gfortran 11+ | Linux | None |
+| gfortran 11+ | macOS Intel | Requires `-frecursive` |
+| gfortran | macOS ARM64 | Multiple severe bugs |
+| flang-new | macOS ARM64 | 128-byte string limit |
+
+See [COMPILER_NOTES.md](https://github.com/fortrangoingonforty/fortsh/blob/trunk/COMPILER_NOTES.md) in the repository for details.

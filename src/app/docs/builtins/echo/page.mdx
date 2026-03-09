@@ -1,0 +1,140 @@
+# echo - Print Text
+
+Write arguments to standard output.
+
+**Source:** `src/execution/builtins.f90:builtin_echo`
+
+## Synopsis
+
+```bash
+echo [-neE] [arguments...]
+```
+
+## Description
+
+Outputs its arguments separated by spaces, followed by a newline. The `echo` builtin is POSIX-compliant by default: escape sequences are NOT interpreted unless `-e` is specified.
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `-n` | Do not print trailing newline |
+| `-e` | Interpret backslash escape sequences |
+| `-E` | Do not interpret escape sequences (default) |
+
+Options can be combined: `-ne`, `-en`, `-nE`
+
+## Escape Sequences (with -e)
+
+| Sequence | Character |
+|----------|-----------|
+| `\a` | Alert (bell, ASCII 7) |
+| `\b` | Backspace (ASCII 8) |
+| `\c` | Stop output (suppress newline and remaining text) |
+| `\f` | Form feed (ASCII 12) |
+| `\n` | Newline |
+| `\r` | Carriage return (ASCII 13) |
+| `\t` | Horizontal tab (ASCII 9) |
+| `\v` | Vertical tab (ASCII 11) |
+| `\\` | Literal backslash |
+
+## Return Value
+
+| Code | Meaning |
+|------|---------|
+| 0 | Success |
+| 1 | Write error |
+
+## Examples
+
+### Basic output
+
+```bash
+echo Hello, World!
+# Output: Hello, World!
+```
+
+### No newline
+
+```bash
+echo -n "Enter name: "
+read name
+```
+
+### Escape sequences
+
+```bash
+echo -e "Line 1\nLine 2"
+# Output:
+# Line 1
+# Line 2
+
+echo -e "Column1\tColumn2"
+# Output: Column1	Column2
+
+echo -e "Bell: \a"  # System bell
+```
+
+### Stop output
+
+```bash
+echo -e "This prints\c but this doesn't"
+# Output: This prints
+```
+
+### Combined options
+
+```bash
+echo -en "Loading...\r"
+# Prints without newline, returns cursor to start
+```
+
+## Implementation Details
+
+From `builtins.f90`:
+
+```fortran
+! Parse flags at start
+do while (arg_index <= num_args)
+    arg = args(arg_index)
+    if (arg == "-n") then
+        add_newline = .false.
+    else if (arg == "-e") then
+        interpret_escapes = .true.
+    else if (arg == "-E") then
+        interpret_escapes = .false.
+    else if (arg == "-ne" .or. arg == "-en") then
+        add_newline = .false.
+        interpret_escapes = .true.
+```
+
+The escape sequence processor handles each sequence character-by-character:
+
+```fortran
+case ('n')
+    output(out_pos:out_pos) = char(10)  ! newline
+case ('t')
+    output(out_pos:out_pos) = char(9)   ! tab
+case ('c')
+    exit  ! stop processing
+```
+
+## POSIX Compliance
+
+fortsh's `echo` follows POSIX behavior:
+- Escape sequences are NOT interpreted by default
+- Use `-e` to enable escape interpretation
+- Some shells (like bash in non-POSIX mode) interpret escapes by default
+
+For portable scripts, prefer `printf` which has consistent behavior across shells.
+
+## Related Commands
+
+- [printf](/docs/builtins/printf) - Formatted output (more portable)
+- [read](/docs/builtins/read) - Read input
+
+## Notes
+
+- Empty arguments are preserved when quoted: `echo "" ""` outputs two empty strings
+- Arguments are separated by single spaces regardless of input whitespace
+- Uses file descriptor-aware I/O, respecting redirections

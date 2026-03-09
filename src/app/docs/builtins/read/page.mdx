@@ -1,0 +1,198 @@
+# read - Read Input
+
+Read a line of input into variables.
+
+**Source:** `src/scripting/read_builtin.f90:builtin_read`
+
+## Synopsis
+
+```bash
+read [-ptsrdan] [variable...]
+```
+
+## Description
+
+Reads a single line from standard input (or the specified file descriptor) and assigns words to variables. If no variable names are given, the line is stored in `REPLY`.
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `-p prompt` | Display prompt before reading |
+| `-t timeout` | Timeout in seconds (returns 1 on timeout) |
+| `-s` | Silent mode (no echo, for passwords) |
+| `-r` | Raw mode (don't interpret backslashes) |
+| `-d delim` | Use delim as line delimiter instead of newline |
+| `-a array` | Read words into indexed array |
+| `-n nchars` | Read at most nchars characters |
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| variable | Variable name(s) to receive input |
+| (none) | Input stored in REPLY |
+
+## Word Splitting
+
+Input is split according to `IFS` (default: space, tab, newline):
+- First word → first variable
+- Second word → second variable
+- ...
+- Remaining words → last variable
+
+## Return Value
+
+| Code | Meaning |
+|------|---------|
+| 0 | Success |
+| 1 | End of file, timeout, or error |
+
+## Examples
+
+### Basic reading
+
+```bash
+read name
+echo "Hello, $name"
+
+# With prompt
+read -p "Enter your name: " name
+
+# Multiple variables
+read first last
+echo "First: $first, Last: $last"
+```
+
+### Password input
+
+```bash
+read -sp "Password: " password
+echo  # newline after silent input
+```
+
+### Timeout
+
+```bash
+if read -t 5 -p "Quick! Answer: " answer; then
+    echo "You said: $answer"
+else
+    echo "Too slow!"
+fi
+```
+
+### Reading into array
+
+```bash
+read -a words <<< "one two three"
+echo "${words[0]}"  # one
+echo "${words[1]}"  # two
+echo "${words[2]}"  # three
+```
+
+### Custom delimiter
+
+```bash
+# Read until comma
+read -d ',' field1 <<< "value1,value2,value3"
+echo "$field1"  # value1
+```
+
+### Raw mode (preserve backslashes)
+
+```bash
+# Without -r: backslash is escape
+echo "path\\to\\file" | read line
+echo "$line"  # path\to\file (backslashes eaten)
+
+# With -r: literal backslashes
+echo "path\\to\\file" | read -r line
+echo "$line"  # path\\to\\file (preserved)
+```
+
+### Read specific number of characters
+
+```bash
+read -n 1 -p "Press any key to continue..."
+echo
+```
+
+## Implementation Details
+
+From `read_builtin.f90`:
+
+```fortran
+! Parse options
+do while (i <= num_args)
+    arg = args(i)
+    select case (trim(arg))
+    case ("-p")
+        prompt = args(i + 1)
+        i = i + 2
+    case ("-t")
+        timeout_seconds = parse_integer(args(i + 1))
+        i = i + 2
+    case ("-s")
+        silent_mode = .true.
+        i = i + 1
+    case ("-r")
+        raw_mode = .true.
+        i = i + 1
+```
+
+For silent mode, terminal echo is disabled:
+
+```fortran
+if (silent_mode) then
+    call disable_echo()
+end if
+! ... read input ...
+if (silent_mode) then
+    call enable_echo()
+end if
+```
+
+## IFS Behavior
+
+Word splitting respects `IFS`:
+
+```bash
+# Default IFS (space, tab, newline)
+echo "  one   two   three  " | read a b c
+# a="one", b="two", c="three"
+
+# Custom IFS
+IFS=: read user x uid gid gecos home shell < /etc/passwd
+# Splits on colons
+
+# Empty IFS (no splitting)
+IFS= read -r line < file
+# Entire line in one variable
+```
+
+## Reading Files
+
+```bash
+# Read line by line
+while IFS= read -r line; do
+    echo "Line: $line"
+done < file.txt
+
+# Read specific fields
+while IFS=: read -r user _ uid gid _ home shell; do
+    echo "$user uses $shell"
+done < /etc/passwd
+```
+
+## Related Commands
+
+- [echo](/docs/builtins/echo) - Output text
+- [printf](/docs/builtins/printf) - Formatted output
+
+## Notes
+
+- Without `-r`, backslash-newline continues to the next line
+- The last variable receives all remaining words
+- `read` reads from stdin by default; use redirection for files
+- For passwords, combine `-s` (silent) with `-p` (prompt): `read -sp "Password: "`
+- Timeout only works in interactive terminals, not in pipes

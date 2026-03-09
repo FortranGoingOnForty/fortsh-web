@@ -1,0 +1,159 @@
+# First Steps
+
+This guide covers basic fortsh usage for new users.
+
+## Starting fortsh
+
+Launch fortsh from your terminal:
+
+```bash
+fortsh
+```
+
+You'll see the fortsh prompt, ready for commands.
+
+## Running Commands
+
+fortsh works like other POSIX shells:
+
+```bash
+# List files
+ls -la
+
+# Change directory
+cd ~/projects
+
+# View file contents
+cat README.md
+
+# Create a directory
+mkdir new-folder
+```
+
+## Running Scripts
+
+Execute shell scripts:
+
+```bash
+# Run a script file
+fortsh script.sh
+
+# Run with arguments
+fortsh script.sh arg1 arg2
+
+# Run a one-liner
+fortsh -c 'echo "Hello from fortsh"'
+```
+
+## Command History
+
+fortsh maintains command history:
+
+- **Up/Down arrows** - Navigate through previous commands
+- **Ctrl+R** - Reverse search through history
+- **!!** - Repeat the last command
+- **!$** - Use the last argument of the previous command
+
+History is saved to `~/.fortsh_history` by default.
+
+## Tab Completion
+
+Press **Tab** to complete:
+
+- Commands
+- File and directory names
+- Variable names (after `$`)
+
+fortsh uses fuzzy matching, so partial matches work.
+
+## Autosuggestions
+
+As you type, fortsh shows grayed-out suggestions based on your history. Press **Right Arrow** or **Ctrl+F** to accept a suggestion.
+
+## Syntax Highlighting
+
+Commands are colored as you type:
+
+- **Green** - Valid commands
+- **Red** - Invalid or not found
+- **Yellow** - Strings
+- **Cyan** - Numbers
+- **Magenta** - Variables
+
+## Basic Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| Ctrl+A | Move to beginning of line |
+| Ctrl+E | Move to end of line |
+| Ctrl+K | Delete to end of line |
+| Ctrl+U | Delete entire line |
+| Ctrl+W | Delete previous word |
+| Ctrl+L | Clear screen |
+| Ctrl+C | Cancel current command |
+| Ctrl+D | Exit (on empty line) |
+
+## Variables
+
+Set and use variables:
+
+```bash
+# Set a variable
+NAME="fortsh"
+
+# Use a variable
+echo "Hello, $NAME"
+
+# Export to environment
+export PATH="$HOME/bin:$PATH"
+```
+
+## Pipes and Redirection
+
+Chain commands and redirect output:
+
+```bash
+# Pipe output to another command
+ls -la | grep ".txt"
+
+# Redirect to file
+echo "Hello" > output.txt
+
+# Append to file
+echo "World" >> output.txt
+
+# Redirect stderr
+command 2> errors.log
+
+# Redirect both stdout and stderr
+command &> all-output.log
+```
+
+## Getting Help
+
+```bash
+# Built-in help
+help cd
+help echo
+
+# Type of command
+type ls
+type cd
+```
+
+## Exiting
+
+```bash
+# Exit fortsh
+exit
+
+# Or press Ctrl+D on an empty line
+```
+
+---
+
+## Next Steps
+
+- [Configuration](/docs/getting-started/configuration) - Customize your shell
+- [Syntax](/docs/syntax) - Learn shell syntax in detail
+- [Builtins](/docs/builtins) - Explore built-in commands

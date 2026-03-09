@@ -1,0 +1,78 @@
+# Autosuggestions
+
+Fish-style autosuggestions show command completions as you type.
+
+**Source:** `src/io/readline.f90:update_autosuggestion`
+
+## Overview
+
+As you type, fortsh shows a grayed-out suggestion based on your command history. The suggestion appears inline after your cursor.
+
+## Accepting Suggestions
+
+| Key | Action |
+|-----|--------|
+| `Right Arrow` | Accept entire suggestion |
+| `Ctrl+F` | Accept entire suggestion |
+| `Ctrl+E` | Accept entire suggestion (move to end) |
+
+The suggestion is appended to your current input.
+
+## How Suggestions Work
+
+1. fortsh searches your history backwards (newest first)
+2. Finds the first entry that starts with your current input
+3. Shows the remainder as a grayed-out suggestion
+4. Stops at newlines (to avoid heredoc content)
+
+**From the source:**
+```fortran
+! Search history backwards for matching prefix
+do i = command_history%count, 1, -1
+    call get_history_line(i, hist_line, found)
+    if (found .and. starts_with(hist_line, current_input)) then
+        suggestion = hist_line(len(current_input)+1:)
+        return
+    end if
+end do
+```
+
+## Path Suggestions
+
+fortsh also suggests file paths. When your last word looks like a partial path (contains `/`), path completion takes priority over history.
+
+```bash
+cd /ho        # Suggests: /home
+cat ~/pro     # Suggests: ~/projects
+```
+
+## Display Behavior
+
+- Suggestions only appear when cursor is at end of line
+- Grayed out using ANSI color code 90 (bright black)
+- Limited to terminal width to prevent wrapping
+- Not shown during incremental search or menu selection
+
+## Configuration
+
+Autosuggestions are enabled by default. To disable:
+
+```bash
+export FORTSH_NO_SUGGESTIONS=1
+```
+
+## Comparison with Fish
+
+| Feature | fortsh | fish |
+|---------|--------|------|
+| History-based suggestions | Yes | Yes |
+| Path suggestions | Yes | Yes |
+| Accept full suggestion | Right Arrow | Right Arrow |
+| Accept word | Not implemented | Ctrl+Right |
+| Syntax-aware suggestions | No | Yes |
+
+## Implementation Notes
+
+- Max suggestion length: `MAX_LINE_LEN` (1024 bytes on Linux, 128 on macOS ARM64)
+- Suggestions respect the current command's context
+- Multi-line commands (heredocs) are handled by stopping at newlines

@@ -1,0 +1,56 @@
+# Syntax
+
+This section covers shell syntax: how commands are parsed, how values are expanded, and how special characters are interpreted.
+
+## Topics
+
+- [Quoting](/docs/syntax/quoting) - Single quotes, double quotes, escaping
+- [Redirection](/docs/syntax/redirection) - Input/output redirection, here-documents
+- [Pipes](/docs/syntax/pipes) - Pipelines and command chaining
+- [Expansion](/docs/syntax/expansion) - Parameter, command, arithmetic, brace, tilde, glob
+- [Heredocs](/docs/syntax/heredocs) - Here-documents and here-strings
+
+## Expansion Order
+
+Shell expansion happens in this order (per POSIX):
+
+1. **Brace expansion** - `{a,b,c}`, `{1..10}`
+2. **Tilde expansion** - `~`, `~/path`
+3. **Parameter expansion** - `$var`, `${var:-default}`
+4. **Command substitution** - `$(cmd)`
+5. **Arithmetic expansion** - `$((expr))`
+6. **Field splitting** - Using `IFS`
+7. **Pathname expansion (globbing)** - `*`, `?`, `[...]`
+8. **Quote removal** - Remove quotes after expansion
+
+**Source:** `src/scripting/expansion.f90`
+
+## Command Structure
+
+A simple command consists of:
+
+```
+[VAR=value...] command [arguments...] [redirections...]
+```
+
+Commands can be combined:
+
+| Operator | Meaning |
+|----------|---------|
+| `cmd1 ; cmd2` | Sequential execution |
+| `cmd1 && cmd2` | Execute cmd2 if cmd1 succeeds |
+| `cmd1 \|\| cmd2` | Execute cmd2 if cmd1 fails |
+| `cmd &` | Execute cmd in background |
+| `cmd1 \| cmd2` | Pipe stdout of cmd1 to stdin of cmd2 |
+
+## Grouping
+
+```bash
+# Subshell (separate environment)
+(cmd1; cmd2)
+
+# Command group (same environment)
+{ cmd1; cmd2; }
+```
+
+Note: Brace groups require the final semicolon and spaces around braces.

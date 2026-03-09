@@ -1,0 +1,142 @@
+# macOS Apple Silicon
+
+fortsh on Apple Silicon (M1/M2/M3) has a significant limitation due to Fortran compiler issues.
+
+**Key limitation:** Commands are limited to **127 characters**.
+
+## The Problem
+
+### gfortran Issues
+
+gfortran on ARM64 macOS has multiple severe bugs:
+
+1. **Stack corruption** with programs using more than ~600KB stack
+2. **Deferred-length string length loss** during argument passing
+3. **Segfaults** on `intent(out)` string arguments
+4. **Heap corruption** on string assignment
+
+These bugs make gfortran unusable for fortsh on Apple Silicon.
+
+### flang-new Workaround
+
+fortsh uses flang-new (LLVM's Fortran compiler) on Apple Silicon. However, flang-new has its own limitation:
+
+**128-byte string operation limit:** Substring operations on strings longer than 128 bytes cause heap corruption.
+
+This limits command lines to 127 characters (128 minus null terminator).
+
+## Impact
+
+- Very long commands must be split or aliased
+- Long paths may need to be cd'd into rather than typed
+- Complex one-liners may need to be saved as scripts
+- Normal interactive use is generally unaffected
+
+## Workaround Implementation
+
+fortsh includes a C string library (`src/c_interop/fortsh_strings.c`) that implements string operations safely on Apple Silicon:
+
+```c
+// C functions that bypass the flang-new bug
+void c_string_copy(char* dest, const char* src, int max_len);
+void c_string_concat(char* dest, const char* src, int max_len);
+int c_string_length(const char* str);
+```
+
+This workaround is automatically enabled when building on macOS ARM64.
+
+## Installation
+
+### Via Homebrew
+
+```bash
+brew install FortranGoingOnForty/tap/fortsh
+```
+
+### From Source
+
+```bash
+# Install LLVM (provides flang-new)
+brew install llvm
+
+# Add to PATH
+export PATH="/opt/homebrew/opt/llvm/bin:$PATH"
+
+# Build
+git clone https://github.com/fortrangoingonforty/fortsh.git
+cd fortsh
+make
+sudo make install
+```
+
+The Makefile automatically detects ARM64 and uses flang-new.
+
+## Checking Your Setup
+
+```bash
+# Verify the limit
+fortsh -c 'echo "${#0}"'  # Shows max line length
+
+# Check compiler used
+fortsh -c 'echo $FORTSH_COMPILER'  # Shows "flang-new" on ARM64
+```
+
+## Configuration Differences
+
+| Setting | Linux | macOS ARM64 |
+|---------|-------|-------------|
+| MAX_LINE_LEN | 1024 | 128 |
+| MAX_HISTORY | 1000 | 100 |
+| String library | Native Fortran | C interop |
+
+## Future
+
+This limitation may be resolved when:
+- flang-new fixes the 128-byte substring bug, OR
+- gfortran fixes its ARM64 bugs, OR
+- fortsh implements a full C string backend
+
+Until then, the 127-character limit remains on Apple Silicon.
+
+## Workarounds
+
+### Use Aliases
+
+```bash
+# Instead of typing long commands
+alias deploy='cd ~/projects/myapp && ./scripts/deploy.sh --env=prod'
+```
+
+### Use Variables
+
+```bash
+# Store long paths
+export APP="$HOME/long/path/to/application"
+cd "$APP"
+```
+
+### Use Scripts
+
+For complex one-liners, save as a script instead:
+
+```bash
+# Instead of a 200-character one-liner:
+cat > script.sh << 'EOF'
+# Your complex commands here
+EOF
+fortsh script.sh
+```
+
+## System Information
+
+Fortsh detects the platform at compile time:
+
+```fortran
+#if defined(__APPLE__) && defined(__arm64__)
+    ! Use C string library
+    USE_C_STRINGS = .true.
+    MAX_LINE_LEN = 128
+#endif
+```
+
+From `src/common/constants.f90` and build-time detection in `Makefile`.

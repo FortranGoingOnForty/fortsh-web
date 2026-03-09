@@ -1,0 +1,131 @@
+# Interactive Features
+
+fortsh provides modern interactive features inspired by fish shell while maintaining POSIX compliance.
+
+**Source:** `src/io/readline.f90`, `src/io/syntax_highlight.f90`, `src/scripting/completion.f90`
+
+## Topics
+
+- [Line Editing](/docs/interactive/line-editing) - Cursor movement, text manipulation
+- [History](/docs/interactive/history) - Command history and search
+- [Completion](/docs/interactive/completion) - Tab completion
+- [Syntax Highlighting](/docs/interactive/highlighting) - Real-time command validation
+- [Autosuggestions](/docs/interactive/autosuggestions) - Fish-style suggestions
+
+## Feature Overview
+
+| Feature | Description |
+|---------|-------------|
+| Autosuggestions | History-based suggestions as you type |
+| Syntax highlighting | Commands colored by validity |
+| Fuzzy completion | Tab completion with fuzzy matching |
+| Incremental search | Ctrl+R reverse history search |
+| Vi mode | Optional Vi-style editing |
+| FZF integration | Ctrl+F/H for file/history browsing |
+
+## Keybinding Quick Reference
+
+### Cursor Movement
+
+| Key | Action |
+|-----|--------|
+| `Ctrl+A` | Beginning of line |
+| `Ctrl+E` | End of line |
+| `Ctrl+B` | Back one character |
+| `Ctrl+F` | Forward one character |
+| `Left/Right` | Move cursor |
+| `Home/End` | Beginning/end of line |
+
+### Editing
+
+| Key | Action |
+|-----|--------|
+| `Ctrl+D` | Delete character (or exit if empty) |
+| `Ctrl+K` | Kill to end of line |
+| `Ctrl+U` | Kill entire line |
+| `Ctrl+W` | Kill previous word |
+| `Ctrl+Y` | Yank (paste) killed text |
+| `Ctrl+T` | Transpose characters |
+| `Backspace` | Delete previous character |
+
+### History
+
+| Key | Action |
+|-----|--------|
+| `Up/Down` | Previous/next history |
+| `Ctrl+R` | Reverse incremental search |
+| `Ctrl+S` | Forward incremental search |
+| `Ctrl+G` | Cancel search |
+
+### Completion & Suggestions
+
+| Key | Action |
+|-----|--------|
+| `Tab` | Complete command/file |
+| `Right Arrow` | Accept autosuggestion |
+| `Ctrl+F` | Accept autosuggestion (also FZF files) |
+
+### Special
+
+| Key | Action |
+|-----|--------|
+| `Ctrl+L` | Clear screen |
+| `Ctrl+C` | Cancel current line |
+| `Ctrl+X` | Process kill mode |
+
+## Editing Modes
+
+### Emacs Mode (Default)
+
+Standard readline-style editing with the keybindings shown above.
+
+### Vi Mode
+
+Enable with:
+```bash
+set -o vi
+```
+
+**Insert mode** (default after enabling):
+- Type normally
+- `Esc` to enter command mode
+
+**Command mode**:
+- `h/j/k/l` - Movement
+- `w/b/e` - Word movement
+- `0/$` - Beginning/end of line
+- `x/X` - Delete character
+- `d`+motion - Delete with motion
+- `c`+motion - Change with motion
+- `y`+motion - Yank with motion
+- `p/P` - Put after/before cursor
+- `i/a/I/A` - Enter insert mode
+- `u` - Undo
+- `/`+pattern - Forward search
+- `?`+pattern - Backward search
+- `n/N` - Next/previous match
+
+## Environment Variables
+
+| Variable | Purpose |
+|----------|---------|
+| `HISTFILE` | History file location (default: `~/.fortsh_history`) |
+| `HISTSIZE` | Max history entries in memory (default: 1000) |
+| `HISTFILESIZE` | Max history entries in file (default: 2000) |
+| `HISTCONTROL` | History behavior: `ignoredups`, `ignorespace`, `erasedups` |
+| `TERM` | Terminal type (affects highlighting) |
+
+## Disabling Features
+
+For scripts or testing:
+
+```bash
+# Disable autosuggestions
+export FORTSH_NO_SUGGESTIONS=1
+
+# Disable syntax highlighting
+export FORTSH_NO_HIGHLIGHT=1
+
+# Test mode (disables interactive features)
+export FORTSH_TEST_MODE=1
+```

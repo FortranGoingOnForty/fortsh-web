@@ -1,0 +1,109 @@
+# cd - Change Directory
+
+Change the current working directory.
+
+**Source:** `src/execution/builtins.f90:builtin_cd`
+
+## Synopsis
+
+```bash
+cd [directory]
+cd -
+cd ~
+cd ~username
+```
+
+## Description
+
+Changes the shell's current working directory. If no argument is given, changes to the home directory (`$HOME`).
+
+## Options
+
+`cd` has no flags. The argument is interpreted as a directory path.
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| (none) | Change to `$HOME` |
+| `-` | Change to previous directory (`$OLDPWD`) and print it |
+| `~` | Change to home directory |
+| `directory` | Change to specified directory |
+
+## Behavior
+
+### Path Resolution
+
+1. If the path contains `/`, it's used directly
+2. If the path doesn't contain `/`, `CDPATH` is consulted
+3. `CDPATH` is a colon-separated list of directories to search
+4. Falls back to current directory if not in `CDPATH`
+
+### Environment Updates
+
+On successful directory change:
+- `OLDPWD` is set to the previous directory
+- `PWD` is set to the new directory
+- Terminal title is updated (if interactive and color-capable)
+- Directory is added to directory history (for `prevd`/`nextd`)
+
+### Implementation Details
+
+From `builtins.f90`:
+```fortran
+! cd with no argument goes to HOME
+if (num_args == 0) then
+    target_dir = get_environment_var("HOME")
+
+! cd - goes to OLDPWD
+else if (trim(args(1)) == "-") then
+    target_dir = shell%oldpwd
+    print_dir = .true.
+```
+
+## Return Value
+
+| Code | Meaning |
+|------|---------|
+| 0 | Success |
+| 1 | Directory not found or permission denied |
+
+## Examples
+
+```bash
+# Go home
+cd
+
+# Go to /tmp
+cd /tmp
+
+# Go back to previous directory
+cd -
+
+# Use CDPATH
+export CDPATH="$HOME/projects"
+cd myproject  # finds ~/projects/myproject
+```
+
+## Environment Variables
+
+| Variable | Purpose |
+|----------|---------|
+| `HOME` | Default directory when no argument |
+| `CDPATH` | Search path for relative directories |
+| `PWD` | Updated to new directory |
+| `OLDPWD` | Updated to previous directory |
+
+## Related Commands
+
+- [pushd](/docs/builtins/pushd) - Push directory onto stack
+- [popd](/docs/builtins/popd) - Pop directory from stack
+- [dirs](/docs/builtins/dirs) - Display directory stack
+- `prevd` - Go to previous directory in history
+- `nextd` - Go to next directory in history
+
+## Notes
+
+- Symlinks are preserved (logical path behavior)
+- The directory history maintained by fortsh is separate from the directory stack (`pushd`/`popd`)
+- `cd` without arguments always goes to `$HOME`, even if `$HOME` is unset (falls back to `/`)

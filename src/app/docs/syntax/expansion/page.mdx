@@ -1,0 +1,422 @@
+# Expansion
+
+Shell expansion transforms text before command execution. This page documents all expansion types in fortsh.
+
+**Source:** `src/scripting/expansion.f90` (3,433 lines)
+
+## Parameter Expansion
+
+Parameter expansion retrieves and transforms variable values.
+
+### Simple Expansion
+
+```bash
+$var        # Value of var
+${var}      # Same, with explicit boundaries
+```
+
+### Default Values
+
+| Syntax | Behavior |
+|--------|----------|
+| `${var-default}` | Use default if var unset |
+| `${var:-default}` | Use default if var unset OR empty |
+| `${var=default}` | Set var to default if unset |
+| `${var:=default}` | Set var to default if unset OR empty |
+| `${var+alternate}` | Use alternate if var is set |
+| `${var:+alternate}` | Use alternate if var is set AND non-empty |
+| `${var?error}` | Error if var unset |
+| `${var:?error}` | Error if var unset OR empty |
+
+**Implementation:** Lines 375-527 in `expansion.f90`
+
+```bash
+# Examples
+name=${1:-"Anonymous"}       # Default argument
+${DEBUG:+echo "Debug mode"}  # Only if DEBUG set and non-empty
+: ${CONFIG:=/etc/app.conf}   # Set default if unset
+```
+
+### String Length
+
+```bash
+${#var}      # Length of var's value
+${#array[@]} # Number of array elements
+${#}         # Number of positional parameters ($#)
+```
+
+**Implementation:** Lines 279-311
+
+### Substring Extraction
+
+```bash
+${var:offset}          # From offset to end
+${var:offset:length}   # From offset, length characters
+```
+
+- Offset is 0-indexed
+- Negative offset counts from end (requires space or parentheses)
+
+**Implementation:** Lines 339-370
+
+```bash
+str="Hello, World!"
+echo ${str:7}      # World!
+echo ${str:0:5}    # Hello
+echo ${str: -6}    # World! (note the space before -)
+```
+
+### Pattern Removal
+
+```bash
+${var#pattern}   # Remove shortest prefix match
+${var##pattern}  # Remove longest prefix match
+${var%pattern}   # Remove shortest suffix match
+${var%%pattern}  # Remove longest suffix match
+```
+
+Patterns use glob syntax (`*`, `?`, `[...]`).
+
+**Implementation:** Prefix removal at lines 313-336, suffix at lines 250-274
+
+```bash
+file="/path/to/file.txt"
+echo ${file##*/}     # file.txt (basename)
+echo ${file%/*}      # /path/to (dirname)
+
+url="https://example.com/page"
+echo ${url#*://}     # example.com/page
+echo ${url%%/*}      # https:
+```
+
+### Pattern Substitution
+
+```bash
+${var/pattern/replacement}   # Replace first match
+${var//pattern/replacement}  # Replace all matches
+${var/#pattern/replacement}  # Replace if matches at start
+${var/%pattern/replacement}  # Replace if matches at end
+```
+
+**Implementation:** Lines 225-248
+
+```bash
+text="hello hello hello"
+echo ${text/hello/hi}    # hi hello hello
+echo ${text//hello/hi}   # hi hi hi
+
+path="/home/user"
+echo ${path/#\/home/~}   # ~/user
+```
+
+### Case Conversion
+
+```bash
+${var^}    # Uppercase first character
+${var^^}   # Uppercase all characters
+${var,}    # Lowercase first character
+${var,,}   # Lowercase all characters
+```
+
+Alternative syntax (bash 4.4+):
+```bash
+${var@U}   # All uppercase
+${var@L}   # All lowercase
+${var@u}   # First char uppercase
+${var@l}   # First char lowercase
+```
+
+**Implementation:** Lines 131-211
+
+```bash
+name="john doe"
+echo ${name^}    # John doe
+echo ${name^^}   # JOHN DOE
+
+LOUD="HELLO"
+echo ${LOUD,,}   # hello
+```
+
+### Transformation
+
+```bash
+${var@Q}   # Shell-quote the value
+${var@E}   # Expand escape sequences
+```
+
+**Implementation:** Lines 147-170
+
+### Array Access
+
+```bash
+${array[index]}   # Element at index
+${array[@]}       # All elements (separate words)
+${array[*]}       # All elements (single word with IFS)
+${#array[@]}      # Number of elements
+${!array[@]}      # All indices/keys
+```
+
+For associative arrays:
+```bash
+${assoc[key]}     # Value for key
+${!assoc[@]}      # All keys
+```
+
+**Implementation:** Lines 48-126
+
+---
+
+## Command Substitution
+
+Execute a command and substitute its output.
+
+```bash
+$(command)    # Modern syntax (nestable)
+`command`     # Legacy syntax (avoid)
+```
+
+**Implementation:** Lines 2456-2505
+
+```bash
+today=$(date +%Y-%m-%d)
+files=$(ls *.txt)
+count=$(wc -l < file.txt)
+
+# Nested
+version=$(cat $(which python) | head -1)
+```
+
+### Behavior
+- Trailing newlines are removed
+- Output is subject to word splitting unless quoted
+- Can be nested with `$(...)`
+
+---
+
+## Arithmetic Expansion
+
+Evaluate arithmetic expressions.
+
+```bash
+$((expression))
+```
+
+**Implementation:** Lines 2437-2454, arithmetic module
+
+### Operators (by precedence)
+
+| Precedence | Operators | Description |
+|------------|-----------|-------------|
+| 1 | `? :` | Ternary conditional |
+| 2 | `\|\|` | Logical OR |
+| 3 | `&&` | Logical AND |
+| 4 | `\|` | Bitwise OR |
+| 5 | `^` | Bitwise XOR |
+| 6 | `&` | Bitwise AND |
+| 7 | `==` `!=` | Equality |
+| 8 | `<` `<=` `>` `>=` | Comparison |
+| 9 | `<<` `>>` | Bit shift |
+| 10 | `+` `-` | Addition, subtraction |
+| 11 | `*` `/` `%` | Multiplication, division, modulo |
+| 12 | `**` | Exponentiation |
+| 13 | `!` `-` `+` `~` | Unary operators |
+| 14 | `++` `--` | Increment, decrement |
+
+### Assignment Operators
+
+```bash
+var = value
+var += value   # var = var + value
+var -= value
+var *= value
+var /= value
+var %= value
+var &= value
+var |= value
+var ^= value
+var <<= value
+var >>= value
+```
+
+### Examples
+
+```bash
+echo $((2 + 3))           # 5
+echo $((10 / 3))          # 3 (integer division)
+echo $((2 ** 10))         # 1024
+echo $((x > 0 ? x : -x))  # absolute value
+echo $((0xff))            # 255 (hex)
+echo $((010))             # 8 (octal)
+```
+
+### Variables in Arithmetic
+
+```bash
+x=5
+echo $((x * 2))           # 10 (no $ needed)
+echo $(($x * 2))          # 10 ($ also works)
+echo $((x++))             # 5, then x=6
+echo $((++x))             # 7
+```
+
+---
+
+## Brace Expansion
+
+Generate arbitrary strings.
+
+**Implementation:** Lines 2821-3041
+
+### List Expansion
+
+```bash
+{item1,item2,item3}
+```
+
+```bash
+echo {a,b,c}           # a b c
+echo file.{txt,md,sh}  # file.txt file.md file.sh
+mkdir -p project/{src,test,docs}
+```
+
+### Range Expansion
+
+```bash
+{start..end}
+{start..end..step}
+```
+
+```bash
+echo {1..5}            # 1 2 3 4 5
+echo {5..1}            # 5 4 3 2 1
+echo {a..e}            # a b c d e
+echo {1..10..2}        # 1 3 5 7 9
+echo {01..10}          # 01 02 03 ... 10 (zero-padded)
+```
+
+### Combinations
+
+```bash
+echo {a,b}{1,2}        # a1 a2 b1 b2
+echo {1..3}{a..c}      # 1a 1b 1c 2a 2b 2c 3a 3b 3c
+```
+
+### Limitations
+
+- Nested brace expansion is **not supported**: `{a,{b,c}}` won't work as expected
+- Alphabetic ranges require single characters
+
+---
+
+## Tilde Expansion
+
+Expand to home directories.
+
+**Implementation:** Lines 3198-3233
+
+```bash
+~              # Current user's home ($HOME)
+~/path         # Path relative to home
+~user          # Home of specified user (NOT IMPLEMENTED)
+~+             # Current directory ($PWD)
+~-             # Previous directory ($OLDPWD)
+```
+
+```bash
+cd ~/projects
+cat ~/.bashrc
+```
+
+---
+
+## Glob Expansion (Pathname Expansion)
+
+Match filenames with patterns.
+
+**Source:** `src/parsing/glob.f90`
+
+| Pattern | Matches |
+|---------|---------|
+| `*` | Zero or more characters (not starting with `.`) |
+| `?` | Exactly one character |
+| `[abc]` | Any one of a, b, or c |
+| `[a-z]` | Any character in range |
+| `[!abc]` | Any character except a, b, c |
+| `[^abc]` | Same as `[!abc]` |
+| `**` | Recursive directory matching |
+
+```bash
+ls *.txt              # All .txt files
+ls file?.txt          # file1.txt, fileA.txt, etc.
+ls [abc]*             # Files starting with a, b, or c
+ls **/test*.py        # Recursive search for test*.py
+```
+
+### Special Cases
+
+- Patterns not matching anything return the literal pattern
+- Patterns starting with `.` must be explicitly matched
+- In `[...]`, `]` as first char is literal: `[]]` matches `]`
+- `-` at start or end is literal: `[-a]` matches `-` or `a`
+
+---
+
+## Field Splitting
+
+After expansion, unquoted results are split on `IFS`.
+
+**Implementation:** Lines 2615-2727
+
+```bash
+IFS=:
+PATH_ARRAY=($PATH)     # Split PATH on colons
+
+IFS=$'\n'
+lines=($(cat file))    # Split on newlines
+
+IFS=
+var=$(cat file)        # No splitting (preserve whitespace)
+```
+
+Default `IFS`: space, tab, newline
+
+### Whitespace vs Non-Whitespace IFS
+
+- Whitespace IFS: consecutive delimiters are collapsed
+- Non-whitespace IFS: each delimiter creates a field
+
+```bash
+IFS=' '
+echo $(echo "a   b")   # "a b" (collapsed)
+
+IFS=:
+echo $(echo "a::b")    # "a" "" "b" (empty field preserved)
+```
+
+---
+
+## Quote Removal
+
+After all expansions, quotes are removed:
+
+- Single quotes: removed entirely
+- Double quotes: removed, contents preserved
+- Backslashes: removed where they escape special characters
+
+**Implementation:** Lines 2788-2818
+
+---
+
+## Buffer Limits
+
+From the source code:
+
+| Buffer | Size |
+|--------|------|
+| Parameter expansion result | 2048 bytes |
+| Individual variables | 1024 bytes |
+| Pattern matching | 1024 bytes |
+| Arithmetic expression | 512 bytes |
+| Brace expansion | 1024 bytes |
+
+Recursion is limited to `MAX_RECURSION_DEPTH = 1000` to prevent infinite loops in nested expansions.
