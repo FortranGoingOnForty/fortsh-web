@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import ShellHighlighter from "./ShellHighlighter";
 
 type TabKey = "curl" | "fedora" | "arch" | "homebrew" | "source";
 
@@ -83,13 +84,7 @@ export default function Terminal() {
             {!cmd.startsWith("#") && (
               <span className="text-green-500 mr-2 select-none">$</span>
             )}
-            <code
-              className={
-                cmd.startsWith("#") ? "text-surface-500" : "text-surface-100"
-              }
-            >
-              {cmd}
-            </code>
+            <ShellHighlighter code={cmd} />
           </div>
         ))}
       </div>

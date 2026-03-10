@@ -1,5 +1,8 @@
 import Terminal from "@/components/Terminal";
 import FeatureCard from "@/components/FeatureCard";
+import GitHubStats from "@/components/GitHubStats";
+import DownloadStats from "@/components/DownloadStats";
+import ShellHighlighter from "@/components/ShellHighlighter";
 
 const features = [
   {
@@ -62,6 +65,12 @@ export default function Home() {
               Features
             </a>
             <a
+              href="/releases"
+              className="text-surface-600 hover:text-surface-900 dark:text-surface-400 dark:hover:text-surface-100"
+            >
+              Releases
+            </a>
+            <a
               href="https://github.com/fortrangoingonforty/fortsh"
               className="text-surface-600 hover:text-surface-900 dark:text-surface-400 dark:hover:text-surface-100"
               target="_blank"
@@ -89,8 +98,12 @@ export default function Home() {
             <Terminal />
           </div>
 
+          <div className="flex flex-wrap items-center justify-center gap-3 mb-4">
+            <GitHubStats />
+            <DownloadStats />
+          </div>
           <p className="text-sm text-surface-500 dark:text-surface-500">
-            Version 1.3.1 · Single maintainer project · MIT License
+            Single maintainer project · MIT License
           </p>
         </div>
       </section>
@@ -125,14 +138,16 @@ export default function Home() {
                 Try it out
               </h3>
               <div className="code-block">
-                <code>
-                  <span className="text-surface-500"># Start fortsh</span>
-                  {"\n"}fortsh{"\n\n"}
-                  <span className="text-surface-500"># Run a script</span>
-                  {"\n"}fortsh script.sh{"\n\n"}
-                  <span className="text-surface-500"># One-liner</span>
-                  {"\n"}fortsh -c &apos;echo hello&apos;
-                </code>
+                <pre className="text-sm whitespace-pre">
+                  <ShellHighlighter code={`# Start fortsh
+fortsh
+
+# Run a script
+fortsh script.sh
+
+# One-liner
+fortsh -c 'echo hello'`} />
+                </pre>
               </div>
             </div>
             <div>
@@ -140,13 +155,14 @@ export default function Home() {
                 Configure
               </h3>
               <div className="code-block">
-                <code>
-                  <span className="text-surface-500"># ~/.fortshrc</span>
-                  {"\n"}alias ll=&apos;ls -la&apos;{"\n"}
-                  export PATH=&quot;$HOME/bin:$PATH&quot;{"\n\n"}
-                  <span className="text-surface-500"># Custom prompt</span>
-                  {"\n"}PS1=&apos;\u@\h:\w$ &apos;
-                </code>
+                <pre className="text-sm whitespace-pre">
+                  <ShellHighlighter code={`# ~/.fortshrc
+alias ll='ls -la'
+export PATH="$HOME/bin:$PATH"
+
+# Custom prompt
+PS1='\\u@\\h:\\w$ '`} />
+                </pre>
               </div>
             </div>
           </div>

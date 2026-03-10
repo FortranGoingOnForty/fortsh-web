@@ -42,6 +42,7 @@ cp -r public "$RELEASE_DIR/"
 cp package.json "$RELEASE_DIR/"
 cp package-lock.json "$RELEASE_DIR/"
 cp next.config.mjs "$RELEASE_DIR/"
+cp ecosystem.config.cjs "$RELEASE_DIR/"
 
 # Copy data directory if exists (for stats.json)
 if [ -d "data" ]; then
@@ -66,7 +67,11 @@ cd "/var/www/$DOMAIN/current"
 if pm2 describe "$APP_NAME" > /dev/null 2>&1; then
     pm2 restart "$APP_NAME"
 else
-    pm2 start npm --name "$APP_NAME" -- start
+    # Create log directory
+    sudo mkdir -p /var/log/fortsh-web
+    sudo chown "$USER:$USER" /var/log/fortsh-web
+    # Start with ecosystem config (includes restart safeguards)
+    pm2 start ecosystem.config.cjs
 fi
 pm2 save
 

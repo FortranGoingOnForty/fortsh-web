@@ -61,3 +61,37 @@ body {
     @apply text-surface-100 bg-surface-800;
   }
 }
+
+/* Table styling for MDX */
+table {
+  @apply w-full border-collapse my-6 text-sm;
+}
+
+th {
+  @apply bg-surface-100 dark:bg-surface-800 text-left px-4 py-2 font-semibold text-surface-900 dark:text-surface-100 border border-surface-200 dark:border-surface-700;
+}
+
+td {
+  @apply px-4 py-2 border border-surface-200 dark:border-surface-700 text-surface-700 dark:text-surface-300;
+}
+
+tr:nth-child(even) td {
+  @apply bg-surface-50 dark:bg-surface-800/50;
+}
+
+/* Shell syntax highlighting */
+.sh-comment {
+  @apply text-stone-400;
+}
+
+.sh-string {
+  @apply text-green-300;
+}
+
+.sh-variable {
+  @apply text-cyan-300;
+}
+
+.sh-command {
+  @apply text-stone-100 font-medium;
+}

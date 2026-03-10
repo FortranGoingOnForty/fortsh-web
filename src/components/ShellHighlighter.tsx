@@ -1,5 +1,3 @@
-"use client";
-
 import React from "react";
 
 type TokenType = "comment" | "string" | "variable" | "command" | "text";

@@ -1,4 +1,5 @@
 import type { MDXComponents } from "mdx/types";
+import ShellHighlighter from "@/components/ShellHighlighter";
 
 export function useMDXComponents(components: MDXComponents): MDXComponents {
   return {
@@ -41,7 +42,21 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     code: ({ children, className }) => {
       // Check if it's a code block (has language class) or inline code
       const isBlock = className?.includes("language-");
+      const isShell =
+        className?.includes("language-bash") ||
+        className?.includes("language-sh") ||
+        className?.includes("language-shell");
+
       if (isBlock) {
+        // Shell code gets syntax highlighting
+        if (isShell && typeof children === "string") {
+          return (
+            <ShellHighlighter
+              code={children}
+              className="block text-sm font-mono"
+            />
+          );
+        }
         return (
           <code
             className={`block bg-surface-800 text-surface-100 p-4 rounded-lg overflow-x-auto text-sm font-mono ${className || ""}`}
