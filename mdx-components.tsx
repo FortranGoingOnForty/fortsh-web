@@ -59,7 +59,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
         }
         return (
           <code
-            className={`block bg-surface-800 text-surface-100 p-4 rounded-lg overflow-x-auto text-sm font-mono ${className || ""}`}
+            className={`block text-surface-100 text-sm font-mono ${className || ""}`}
           >
             {children}
           </code>
@@ -72,7 +72,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
       );
     },
     pre: ({ children }) => (
-      <pre className="bg-surface-900 dark:bg-surface-950 rounded-lg mb-4 overflow-x-auto">
+      <pre className="bg-surface-900 dark:bg-surface-950 rounded-lg mb-4 overflow-x-auto p-4">
         {children}
       </pre>
     ),
