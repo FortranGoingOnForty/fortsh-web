@@ -79,19 +79,43 @@ tr:nth-child(even) td {
   @apply bg-surface-50 dark:bg-surface-800/50;
 }
 
-/* Shell syntax highlighting */
-.sh-comment {
-  @apply text-stone-400;
+/* Shell syntax highlighting - fortsh color scheme */
+.sh-builtin {
+  @apply text-green-500;
+}
+
+.sh-keyword {
+  @apply text-fuchsia-500 font-semibold;
+}
+
+.sh-option {
+  @apply text-blue-500;
 }
 
 .sh-string {
-  @apply text-green-300;
+  @apply text-yellow-500;
 }
 
 .sh-variable {
-  @apply text-cyan-300;
+  @apply text-fuchsia-500;
 }
 
-.sh-command {
-  @apply text-stone-100 font-medium;
+.sh-comment {
+  @apply text-zinc-500;
+}
+
+.sh-operator {
+  @apply text-cyan-500;
+}
+
+.sh-number {
+  @apply text-cyan-500;
+}
+
+.sh-path {
+  @apply text-blue-400;
+}
+
+.sh-prompt {
+  @apply text-green-500 select-none;
 }

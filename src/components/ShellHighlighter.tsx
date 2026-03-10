@@ -1,170 +1,286 @@
 import React from "react";
+import {
+  isBuiltin,
+  isKeyword,
+  isOption,
+  isPath,
+  isNumber,
+  matchOperator,
+} from "@/lib/shell-tokens";
 
-type TokenType = "comment" | "string" | "variable" | "command" | "text";
+type TokenType =
+  | "builtin"
+  | "keyword"
+  | "option"
+  | "string"
+  | "variable"
+  | "comment"
+  | "operator"
+  | "number"
+  | "path"
+  | "text"
+  | "prompt";
 
 interface Token {
   type: TokenType;
   value: string;
 }
 
-function tokenizeLine(line: string, isFirstWord: boolean): Token[] {
+function tokenizeLine(line: string): Token[] {
   const tokens: Token[] = [];
   let i = 0;
-  let foundCommand = !isFirstWord;
+  let expectCommand = true; // First word on line is command position
 
   while (i < line.length) {
-    const char = line[i];
+    const remaining = line.slice(i);
+
+    // Whitespace
+    if (/^\s/.test(remaining)) {
+      let end = 0;
+      while (end < remaining.length && /\s/.test(remaining[end])) {
+        end++;
+      }
+      tokens.push({ type: "text", value: remaining.slice(0, end) });
+      i += end;
+      continue;
+    }
 
     // Comment - rest of line
-    if (char === "#") {
-      tokens.push({ type: "comment", value: line.slice(i) });
+    if (remaining[0] === "#") {
+      tokens.push({ type: "comment", value: remaining });
       break;
     }
 
-    // Single-quoted string
-    if (char === "'") {
-      const end = line.indexOf("'", i + 1);
-      if (end !== -1) {
-        tokens.push({ type: "string", value: line.slice(i, end + 1) });
-        i = end + 1;
-        continue;
+    // Single-quoted string (no interpolation)
+    if (remaining[0] === "'") {
+      let end = 1;
+      while (end < remaining.length && remaining[end] !== "'") {
+        end++;
       }
-    }
-
-    // Double-quoted string (may contain variables)
-    if (char === '"') {
-      let j = i + 1;
-      let str = '"';
-      while (j < line.length && line[j] !== '"') {
-        if (line[j] === "\\" && j + 1 < line.length) {
-          str += line.slice(j, j + 2);
-          j += 2;
-        } else {
-          str += line[j];
-          j++;
-        }
-      }
-      if (j < line.length) {
-        str += '"';
-        j++;
-      }
-      // For simplicity, treat entire double-quoted string as string type
-      // Could be enhanced to parse variables inside
-      tokens.push({ type: "string", value: str });
-      i = j;
+      if (end < remaining.length) end++; // include closing quote
+      tokens.push({ type: "string", value: remaining.slice(0, end) });
+      i += end;
+      expectCommand = false;
       continue;
     }
 
-    // Variable: $VAR, ${VAR}, $(cmd), $((expr))
-    if (char === "$") {
-      let varEnd = i + 1;
-
-      if (line[varEnd] === "{") {
-        // ${...}
-        let braceCount = 1;
-        varEnd++;
-        while (varEnd < line.length && braceCount > 0) {
-          if (line[varEnd] === "{") braceCount++;
-          if (line[varEnd] === "}") braceCount--;
-          varEnd++;
-        }
-      } else if (line[varEnd] === "(") {
-        // $(...) or $((...))
-        let parenCount = 1;
-        varEnd++;
-        while (varEnd < line.length && parenCount > 0) {
-          if (line[varEnd] === "(") parenCount++;
-          if (line[varEnd] === ")") parenCount--;
-          varEnd++;
-        }
-      } else {
-        // $VAR or $1, $?, etc.
-        while (varEnd < line.length && /[a-zA-Z0-9_?!#$@*-]/.test(line[varEnd])) {
-          varEnd++;
-        }
-      }
-
-      if (varEnd > i + 1) {
-        tokens.push({ type: "variable", value: line.slice(i, varEnd) });
-        i = varEnd;
-        continue;
-      }
-    }
-
-    // Whitespace
-    if (/\s/.test(char)) {
-      let wsEnd = i;
-      while (wsEnd < line.length && /\s/.test(line[wsEnd])) {
-        wsEnd++;
-      }
-      tokens.push({ type: "text", value: line.slice(i, wsEnd) });
-      i = wsEnd;
+    // Double-quoted string (with variable highlighting inside)
+    if (remaining[0] === '"') {
+      const stringTokens = tokenizeDoubleQuotedString(remaining);
+      tokens.push(...stringTokens.tokens);
+      i += stringTokens.consumed;
+      expectCommand = false;
       continue;
     }
 
-    // Word (command or regular text)
-    let wordEnd = i;
-    while (
-      wordEnd < line.length &&
-      !/[\s$'"#]/.test(line[wordEnd])
-    ) {
-      wordEnd++;
+    // Variable: $VAR, ${VAR}, $(cmd), $((expr)), $?, $#, etc.
+    if (remaining[0] === "$") {
+      const varResult = parseVariable(remaining);
+      tokens.push({ type: "variable", value: varResult.value });
+      i += varResult.consumed;
+      expectCommand = false;
+      continue;
     }
 
-    if (wordEnd > i) {
-      const word = line.slice(i, wordEnd);
-      if (!foundCommand && word.length > 0) {
-        tokens.push({ type: "command", value: word });
-        foundCommand = true;
-      } else {
-        tokens.push({ type: "text", value: word });
+    // Operator check (must be before word parsing)
+    const op = matchOperator(remaining);
+    if (op) {
+      tokens.push({ type: "operator", value: op });
+      i += op.length;
+      // After certain operators, next word is in command position
+      if (["|", "&&", "||", ";", "&", "(", "{"].includes(op)) {
+        expectCommand = true;
       }
-      i = wordEnd;
+      continue;
+    }
+
+    // Word (command, builtin, keyword, option, path, number, or plain text)
+    const wordMatch = remaining.match(/^[^\s'"$#|&;<>(){}[\]]+/);
+    if (wordMatch) {
+      const word = wordMatch[0];
+      let type: TokenType = "text";
+
+      if (expectCommand) {
+        // First word position - check if builtin or keyword
+        if (isKeyword(word)) {
+          type = "keyword";
+        } else if (isBuiltin(word)) {
+          type = "builtin";
+        } else if (isPath(word)) {
+          type = "path";
+        }
+        // After finding command, subsequent words are arguments
+        if (!["if", "then", "else", "elif", "do", "while", "until", "for", "case", "in", "{", "("].includes(word)) {
+          expectCommand = false;
+        }
+      } else {
+        // Argument position
+        if (isOption(word)) {
+          type = "option";
+        } else if (isPath(word)) {
+          type = "path";
+        } else if (isNumber(word)) {
+          type = "number";
+        } else if (isKeyword(word)) {
+          // Keywords can appear mid-line too (then, do, done, fi, etc.)
+          type = "keyword";
+          expectCommand = true;
+        }
+      }
+
+      tokens.push({ type, value: word });
+      i += word.length;
       continue;
     }
 
     // Fallback: single character
-    tokens.push({ type: "text", value: char });
+    tokens.push({ type: "text", value: remaining[0] });
     i++;
   }
 
   return tokens;
 }
 
+function parseVariable(str: string): { value: string; consumed: number } {
+  if (str.length < 2) {
+    return { value: "$", consumed: 1 };
+  }
+
+  // ${...}
+  if (str[1] === "{") {
+    let depth = 1;
+    let end = 2;
+    while (end < str.length && depth > 0) {
+      if (str[end] === "{") depth++;
+      if (str[end] === "}") depth--;
+      end++;
+    }
+    return { value: str.slice(0, end), consumed: end };
+  }
+
+  // $((...)) arithmetic
+  if (str[1] === "(" && str[2] === "(") {
+    let depth = 2;
+    let end = 3;
+    while (end < str.length && depth > 0) {
+      if (str[end] === "(" && str[end - 1] === "(") depth++;
+      if (str[end] === ")" && end + 1 < str.length && str[end + 1] === ")") {
+        depth--;
+        if (depth === 0) {
+          end += 2;
+          break;
+        }
+      }
+      end++;
+    }
+    return { value: str.slice(0, end), consumed: end };
+  }
+
+  // $(...)
+  if (str[1] === "(") {
+    let depth = 1;
+    let end = 2;
+    while (end < str.length && depth > 0) {
+      if (str[end] === "(") depth++;
+      if (str[end] === ")") depth--;
+      end++;
+    }
+    return { value: str.slice(0, end), consumed: end };
+  }
+
+  // $VAR or special vars like $?, $#, $@, $*, $$, $!, $0-$9, $_
+  let end = 1;
+  if (/[?#@*$!_0-9]/.test(str[1])) {
+    end = 2;
+  } else {
+    while (end < str.length && /[a-zA-Z0-9_]/.test(str[end])) {
+      end++;
+    }
+  }
+
+  return { value: str.slice(0, end), consumed: end };
+}
+
+function tokenizeDoubleQuotedString(str: string): { tokens: Token[]; consumed: number } {
+  const tokens: Token[] = [];
+  let current = '"';
+  let i = 1;
+
+  while (i < str.length && str[i] !== '"') {
+    // Escape sequence
+    if (str[i] === "\\" && i + 1 < str.length) {
+      current += str.slice(i, i + 2);
+      i += 2;
+      continue;
+    }
+
+    // Variable inside string
+    if (str[i] === "$") {
+      // Push accumulated string content
+      if (current.length > 0) {
+        tokens.push({ type: "string", value: current });
+        current = "";
+      }
+      const varResult = parseVariable(str.slice(i));
+      tokens.push({ type: "variable", value: varResult.value });
+      i += varResult.consumed;
+      continue;
+    }
+
+    current += str[i];
+    i++;
+  }
+
+  // Closing quote
+  if (i < str.length && str[i] === '"') {
+    current += '"';
+    i++;
+  }
+
+  if (current.length > 0) {
+    tokens.push({ type: "string", value: current });
+  }
+
+  return { tokens, consumed: i };
+}
+
 function tokenize(code: string): Token[][] {
   const lines = code.split("\n");
   return lines.map((line) => {
-    // Check if line starts with prompt
     const trimmed = line.trimStart();
     const leadingWs = line.slice(0, line.length - trimmed.length);
 
-    // Lines starting with # are full comments
-    if (trimmed.startsWith("#")) {
-      return [{ type: "comment" as TokenType, value: line }];
+    const tokens: Token[] = [];
+
+    // Add leading whitespace
+    if (leadingWs) {
+      tokens.push({ type: "text", value: leadingWs });
     }
 
-    // Lines with prompt $ - command follows
+    // Handle prompt prefix
     if (trimmed.startsWith("$ ")) {
-      const tokens: Token[] = [];
-      if (leadingWs) {
-        tokens.push({ type: "text", value: leadingWs });
-      }
-      tokens.push({ type: "text", value: "$ " });
-      tokens.push(...tokenizeLine(trimmed.slice(2), true));
-      return tokens;
+      tokens.push({ type: "prompt", value: "$ " });
+      tokens.push(...tokenizeLine(trimmed.slice(2)));
+    } else {
+      tokens.push(...tokenizeLine(trimmed));
     }
 
-    // Regular line - first word is command
-    return tokenizeLine(line, true);
+    return tokens;
   });
 }
 
 const classMap: Record<TokenType, string> = {
-  comment: "sh-comment",
+  builtin: "sh-builtin",
+  keyword: "sh-keyword",
+  option: "sh-option",
   string: "sh-string",
   variable: "sh-variable",
-  command: "sh-command",
+  comment: "sh-comment",
+  operator: "sh-operator",
+  number: "sh-number",
+  path: "sh-path",
   text: "",
+  prompt: "sh-prompt",
 };
 
 interface ShellHighlighterProps {
@@ -194,30 +310,4 @@ export default function ShellHighlighter({ code, className = "" }: ShellHighligh
       ))}
     </code>
   );
-}
-
-// Export a simple function for use in non-React contexts
-export function highlightShellToHTML(code: string): string {
-  const tokenizedLines = tokenize(code);
-  return tokenizedLines
-    .map((tokens) =>
-      tokens
-        .map((token) => {
-          const cls = classMap[token.type];
-          if (cls) {
-            return `<span class="${cls}">${escapeHtml(token.value)}</span>`;
-          }
-          return escapeHtml(token.value);
-        })
-        .join("")
-    )
-    .join("\n");
-}
-
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
 }
