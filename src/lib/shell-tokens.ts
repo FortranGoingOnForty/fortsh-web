@@ -158,3 +158,25 @@ export function isPath(word: string): boolean {
 export function isNumber(word: string): boolean {
   return /^-?\d+(\.\d+)?$/.test(word);
 }
+
+// Prefix commands - the next word is still a command
+// These run another command, so we don't leave command position
+export const PREFIX_COMMANDS = new Set([
+  "sudo",
+  "su",
+  "doas",
+  "env",
+  "nice",
+  "nohup",
+  "time",      // external time command (not keyword)
+  "strace",
+  "ltrace",
+  "xargs",
+  "exec",      // when used as prefix
+  "command",   // forces external command
+  "builtin",   // forces builtin
+]);
+
+export function isPrefixCommand(word: string): boolean {
+  return PREFIX_COMMANDS.has(word);
+}

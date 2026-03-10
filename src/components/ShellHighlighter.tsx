@@ -5,6 +5,7 @@ import {
   isPath,
   isNumber,
   matchOperator,
+  isPrefixCommand,
 } from "@/lib/shell-tokens";
 
 type TokenType =
@@ -103,13 +104,18 @@ function tokenizeLine(line: string): Token[] {
         // First word position - check if keyword or command
         if (isKeyword(word)) {
           type = "keyword";
+        } else if (isPrefixCommand(word)) {
+          // Prefix commands (sudo, env, etc.) - not highlighted, next word is still command
+          type = "text";
+          // Stay in command position for the actual command
         } else {
           // All commands (builtins and external) are green
           type = "command";
-        }
-        // After finding command, subsequent words are arguments
-        if (!["if", "then", "else", "elif", "do", "while", "until", "for", "case", "in", "{", "("].includes(word)) {
           expectCommand = false;
+        }
+        // Keywords that expect more commands after them
+        if (["if", "then", "else", "elif", "do", "while", "until", "for", "case", "in", "{", "("].includes(word)) {
+          expectCommand = true;
         }
       } else {
         // Argument position
