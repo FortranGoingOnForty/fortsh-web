@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 
 interface Heading {
   id: string;
@@ -11,33 +12,43 @@ interface Heading {
 export default function TableOfContents() {
   const [headings, setHeadings] = useState<Heading[]>([]);
   const [activeId, setActiveId] = useState<string>("");
+  const pathname = usePathname();
 
   useEffect(() => {
-    // Find all h2 and h3 headings in the article
-    const article = document.querySelector("article");
-    if (!article) return;
+    // Reset state when pathname changes
+    setHeadings([]);
+    setActiveId("");
 
-    const elements = article.querySelectorAll("h2, h3");
-    const items: Heading[] = [];
+    // Small delay to ensure DOM is updated after navigation
+    const timer = setTimeout(() => {
+      // Find all h2 and h3 headings in the article
+      const article = document.querySelector("article");
+      if (!article) return;
 
-    elements.forEach((el) => {
-      // Generate ID if not present
-      if (!el.id) {
-        el.id = el.textContent
-          ?.toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/(^-|-$)/g, "") || "";
-      }
+      const elements = article.querySelectorAll("h2, h3");
+      const items: Heading[] = [];
 
-      items.push({
-        id: el.id,
-        text: el.textContent || "",
-        level: el.tagName === "H2" ? 2 : 3,
+      elements.forEach((el) => {
+        // Generate ID if not present
+        if (!el.id) {
+          el.id = el.textContent
+            ?.toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/(^-|-$)/g, "") || "";
+        }
+
+        items.push({
+          id: el.id,
+          text: el.textContent || "",
+          level: el.tagName === "H2" ? 2 : 3,
+        });
       });
-    });
 
-    setHeadings(items);
-  }, []);
+      setHeadings(items);
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [pathname]);
 
   useEffect(() => {
     if (headings.length === 0) return;

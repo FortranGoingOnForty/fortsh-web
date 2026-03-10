@@ -1,6 +1,14 @@
 import type { MDXComponents } from "mdx/types";
 import ShellHighlighter from "@/components/ShellHighlighter";
 
+// Generate a slug from heading text for anchor links
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
 export function useMDXComponents(components: MDXComponents): MDXComponents {
   return {
     h1: ({ children }) => (
@@ -8,16 +16,28 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
         {children}
       </h1>
     ),
-    h2: ({ children }) => (
-      <h2 className="text-2xl font-semibold text-surface-900 dark:text-surface-100 mb-4 mt-8 border-b border-surface-200 dark:border-surface-700 pb-2">
-        {children}
-      </h2>
-    ),
-    h3: ({ children }) => (
-      <h3 className="text-xl font-semibold text-surface-900 dark:text-surface-100 mb-3 mt-6">
-        {children}
-      </h3>
-    ),
+    h2: ({ children }) => {
+      const id = typeof children === "string" ? slugify(children) : "";
+      return (
+        <h2
+          id={id}
+          className="text-2xl font-semibold text-surface-900 dark:text-surface-100 mb-4 mt-8 border-b border-surface-200 dark:border-surface-700 pb-2"
+        >
+          {children}
+        </h2>
+      );
+    },
+    h3: ({ children }) => {
+      const id = typeof children === "string" ? slugify(children) : "";
+      return (
+        <h3
+          id={id}
+          className="text-xl font-semibold text-surface-900 dark:text-surface-100 mb-3 mt-6"
+        >
+          {children}
+        </h3>
+      );
+    },
     h4: ({ children }) => (
       <h4 className="text-lg font-medium text-surface-900 dark:text-surface-100 mb-2 mt-4">
         {children}
