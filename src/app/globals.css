@@ -119,3 +119,7 @@ tr:nth-child(even) td {
 .sh-prompt {
   @apply text-green-500 select-none;
 }
+
+.sh-text {
+  @apply text-stone-200;
+}

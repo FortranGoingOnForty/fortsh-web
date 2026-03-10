@@ -283,7 +283,7 @@ const classMap: Record<TokenType, string> = {
   operator: "sh-operator",
   number: "sh-number",
   path: "sh-path",
-  text: "",
+  text: "sh-text",
   prompt: "sh-prompt",
 };
 
