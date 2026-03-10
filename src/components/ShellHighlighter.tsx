@@ -1,6 +1,5 @@
 import React from "react";
 import {
-  isBuiltin,
   isKeyword,
   isOption,
   isPath,
@@ -9,7 +8,7 @@ import {
 } from "@/lib/shell-tokens";
 
 type TokenType =
-  | "builtin"
+  | "command"   // any command (builtin or external) - green
   | "keyword"
   | "option"
   | "string"
@@ -101,13 +100,12 @@ function tokenizeLine(line: string): Token[] {
       let type: TokenType = "text";
 
       if (expectCommand) {
-        // First word position - check if builtin or keyword
+        // First word position - check if keyword or command
         if (isKeyword(word)) {
           type = "keyword";
-        } else if (isBuiltin(word)) {
-          type = "builtin";
-        } else if (isPath(word)) {
-          type = "path";
+        } else {
+          // All commands (builtins and external) are green
+          type = "command";
         }
         // After finding command, subsequent words are arguments
         if (!["if", "then", "else", "elif", "do", "while", "until", "for", "case", "in", "{", "("].includes(word)) {
@@ -270,7 +268,7 @@ function tokenize(code: string): Token[][] {
 }
 
 const classMap: Record<TokenType, string> = {
-  builtin: "sh-builtin",
+  command: "sh-command",
   keyword: "sh-keyword",
   option: "sh-option",
   string: "sh-string",

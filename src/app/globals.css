@@ -80,7 +80,7 @@ tr:nth-child(even) td {
 }
 
 /* Shell syntax highlighting - fortsh color scheme */
-.sh-builtin {
+.sh-command {
   @apply text-green-500;
 }
 
