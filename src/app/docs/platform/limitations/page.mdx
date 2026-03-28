@@ -4,16 +4,11 @@ fortsh has some limitations compared to bash and other shells.
 
 ## Platform Limitations
 
-### macOS Apple Silicon (M1/M2/M3)
+### macOS Apple Silicon (M1/M2/M3/M4)
 
-**Command line limit: 127 characters**
+The C string library (enabled by default) works around flang-new's 128-byte substring bug. With it enabled, the command line limit is **1024 characters**. On Linux, editing buffers are fully allocatable with no hard limit.
 
-Due to a bug in flang-new (the only working Fortran compiler on ARM64 macOS), string operations are limited to 128 bytes.
-
-Workarounds:
-- Use aliases for long commands
-- Use variables for long paths
-- Save complex one-liners as scripts
+History is capped at 100 entries (vs 1000 on Linux).
 
 See [macOS Apple Silicon](/docs/platform/macos-arm) for details.
 
@@ -68,11 +63,13 @@ diff <(cmd1) <(cmd2)      # Works
 
 ### Coprocess
 
-Coproc is not implemented:
+Coprocess support was added in v1.2.0. Basic usage works:
 
 ```bash
-coproc cmd                # Not supported
+coproc myproc { cmd; }    # Supported
 ```
+
+See [coproc](/docs/builtins/coproc) for details.
 
 ## Compatibility Notes
 
@@ -87,7 +84,7 @@ fortsh aims for ~99% bash compatibility. Known differences:
 | Associative arrays | 50 entry limit | Unlimited |
 | Brace expansion | Basic | Full nested |
 | Process substitution | Supported | Supported |
-| Coprocess | Not supported | Supported |
+| Coprocess | Supported (since v1.2.0) | Supported |
 | Loadable builtins | Not supported | Supported |
 
 ### POSIX Compliance
@@ -111,14 +108,16 @@ shopt -s globstar       # Check documentation
 
 ### Maximum Values
 
-| Resource | Limit |
-|----------|-------|
-| Line length (Linux/Intel Mac) | 1024 characters |
-| Line length (ARM Mac) | 127 characters |
-| History entries | 1000 (memory), 2000 (file) |
-| Associative array entries | 50 per array |
-| Control flow nesting | MAX_CONTROL_DEPTH |
-| Local variables | MAX_LOCAL_VARS per function |
+| Resource | Linux / Intel Mac | ARM Mac (with C strings) |
+|----------|-------------------|--------------------------|
+| Command line length | No hard limit (allocatable buffers) | 1024 characters |
+| Token length | 4096 characters | 4096 characters |
+| Autosuggestion / history entry | 1024 characters | 1024 characters |
+| History entries | 1000 (memory) | 100 (memory) |
+| Associative array entries | 50 per array | 50 per array |
+| Environment variable value | 32768 characters | 32768 characters |
+| Heredoc size | 65536 characters | 65536 characters |
+| Max tokens per command | 500 | 500 |
 
 ### Performance
 
@@ -149,6 +148,5 @@ Planned improvements:
 - Increased associative array limits
 - More vi mode commands
 - Better nested brace expansion
-- Resolution of Apple Silicon limitation (pending compiler fixes)
 
 The project welcomes contributions for any of these areas.
