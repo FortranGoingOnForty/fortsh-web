@@ -1,0 +1,61 @@
+# : (colon)
+
+Null command — does nothing, always succeeds.
+
+**Source:** `src/execution/builtins.f90:155-157`
+
+## Synopsis
+
+```bash
+: [arguments]
+```
+
+## Description
+
+The colon builtin is the POSIX null command. It does nothing and always returns success. Any arguments are silently ignored (though they are still subject to expansion).
+
+## Common Uses
+
+### Infinite loops
+
+```bash
+while :; do
+    echo "running..."
+    sleep 1
+done
+```
+
+### No-op placeholder
+
+```bash
+if [[ "$DEBUG" == "true" ]]; then
+    set -x
+else
+    :    # Do nothing
+fi
+```
+
+### Variable expansion side effects
+
+```bash
+: "${HOME:=/home/default}"    # Set HOME if unset
+: "${1:?Missing argument}"    # Error if $1 is unset
+```
+
+### Empty function body
+
+```bash
+placeholder_func() {
+    :
+}
+```
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | Always |
+
+## See Also
+
+- [test](/docs/builtins/test) - Evaluate conditional expressions

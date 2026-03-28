@@ -1,0 +1,50 @@
+# memory
+
+Shell memory usage monitoring.
+
+**Source:** `src/execution/builtins.f90:1790-1825`
+
+## Synopsis
+
+```bash
+memory [optimize | stats | auto]
+```
+
+## Description
+
+Displays and manages the shell's internal memory allocations. Useful for debugging or optimizing long-running shell sessions.
+
+## Subcommands
+
+| Subcommand | Description |
+|------------|-------------|
+| (none) | Show summary: current/peak allocations and memory usage |
+| `optimize` | Compact internal memory pools |
+| `stats` | Print per-pool capacity and usage breakdown |
+| `auto` | Optimize only if memory usage exceeds 1 MB or 100 allocations |
+
+## Usage
+
+```bash
+memory
+# Memory Usage Summary:
+# Current allocations:            42
+# Peak allocations:               87
+# Current memory:              32768 bytes
+# Peak memory:                 65536 bytes
+
+memory optimize   # Compact pools
+memory auto       # Optimize if needed
+memory stats      # Detailed breakdown
+```
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | Success |
+| 1 | Unknown subcommand |
+
+## See Also
+
+- [perf](/docs/builtins/perf) - Performance monitoring

@@ -1,0 +1,57 @@
+# which
+
+Locate a command on PATH.
+
+**Source:** `src/scripting/command_builtin.f90:88-141`
+
+## Synopsis
+
+```bash
+which [-s] command [command ...]
+```
+
+## Description
+
+Searches `PATH` for each named command and prints the full path of the executable that would be run. Similar to [type](/docs/builtins/type) but only searches external commands (not builtins, functions, or aliases).
+
+## Options
+
+| Flag | Description |
+|------|-------------|
+| `-s` | Silent mode — don't print anything, just set exit status |
+
+## Usage
+
+```bash
+which ls
+# /usr/bin/ls
+
+which fortsh
+# /usr/local/bin/fortsh
+
+which ls cat grep
+# /usr/bin/ls
+# /usr/bin/cat
+# /usr/bin/grep
+
+# Check if a command exists without output
+if which gcc -s; then
+    echo "GCC is installed"
+fi
+```
+
+If a command name contains `/`, it is treated as an explicit path and checked directly for executability.
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | All commands found |
+| 1 | One or more commands not found |
+| 2 | No arguments given |
+
+## See Also
+
+- [type](/docs/builtins/type) - Identify a command (includes builtins, functions, aliases)
+- [command](/docs/builtins/command) - Run a command bypassing functions
+- [hash](/docs/builtins/hash) - Manage the command hash table

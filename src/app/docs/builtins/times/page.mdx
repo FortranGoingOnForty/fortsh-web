@@ -1,0 +1,34 @@
+# times
+
+Display accumulated shell and child process times.
+
+**Source:** `src/execution/builtins.f90:3155-3206`
+
+## Synopsis
+
+```bash
+times
+```
+
+## Description
+
+Prints the accumulated user and system CPU times for the shell itself and for all child processes that have been waited for. Takes no arguments.
+
+## Output Format
+
+Two lines in the format `<minutes>m<seconds>s`:
+
+```bash
+times
+# 0m0.024s 0m0.008s     (shell: user sys)
+# 0m1.340s 0m0.156s     (children: user sys)
+```
+
+Line 1 is the shell process (user time, system time). Line 2 is the cumulative time of all waited-for child processes.
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | Success |
+| 1 | Failed to query process times |

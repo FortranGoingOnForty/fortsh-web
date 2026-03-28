@@ -1,0 +1,58 @@
+# perf
+
+Shell performance monitoring.
+
+**Source:** `src/execution/builtins.f90:1751-1788`
+
+## Synopsis
+
+```bash
+perf [on | off | stats | reset]
+```
+
+## Description
+
+Controls fortsh's built-in performance monitoring. When enabled, the shell tracks parse time, execution time, and glob time for every command.
+
+## Subcommands
+
+| Subcommand | Description |
+|------------|-------------|
+| (none) | Show monitoring status, total commands, and current memory usage |
+| `on` | Enable performance monitoring |
+| `off` | Disable performance monitoring |
+| `stats` | Print detailed stats: uptime, total commands, average parse/exec/glob times |
+| `status` | Same as `stats` |
+| `reset` | Zero out all counters |
+
+## Usage
+
+```bash
+# Enable monitoring
+perf on
+
+# Run some commands...
+ls -la
+find . -name "*.f90"
+
+# Check stats
+perf stats
+
+# Reset counters
+perf reset
+
+# Disable
+perf off
+```
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | Success |
+| 1 | Unknown subcommand |
+
+## See Also
+
+- [memory](/docs/builtins/memory) - Memory usage monitoring
+- [times](/docs/builtins/times) - CPU time accounting

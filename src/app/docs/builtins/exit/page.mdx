@@ -1,0 +1,69 @@
+# exit
+
+Exit the shell.
+
+**Source:** `src/execution/builtins.f90:248-327`
+
+## Synopsis
+
+```bash
+exit [n]
+```
+
+## Description
+
+Terminates the shell with exit status `n`. If `n` is omitted, the exit status is that of the last command executed. If `n` is not a valid integer, the exit status is `2`.
+
+Before exiting, fortsh executes any `EXIT` trap that has been registered with [trap](/docs/builtins/trap).
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `n` | Exit status (integer). Optional — defaults to `$?` |
+
+## Behavior
+
+1. If an `EXIT` trap is set, it runs first (exactly once)
+2. The shell's main loop terminates
+3. The process exits with the given status code
+
+```bash
+exit          # Exit with last command's status
+exit 0        # Exit successfully
+exit 1        # Exit with failure
+exit 42       # Exit with custom code
+```
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| `n` | The provided exit code |
+| `$?` | Last command's status, if no argument given |
+| 2 | Non-numeric argument |
+
+## Examples
+
+```bash
+# Exit on error
+if [[ ! -f config ]]; then
+    echo "Config missing" >&2
+    exit 1
+fi
+
+# Cleanup before exit using trap
+cleanup() {
+    rm -f "$tmpfile"
+}
+trap cleanup EXIT
+
+tmpfile=$(mktemp)
+# Work with tmpfile...
+exit 0    # cleanup runs automatically
+```
+
+## See Also
+
+- [trap](/docs/builtins/trap) - Set signal and exit handlers
+- [return](/docs/builtins/return) - Return from a function or sourced script

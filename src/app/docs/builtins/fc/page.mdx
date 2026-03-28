@@ -1,0 +1,85 @@
+# fc
+
+Display, edit, or re-execute commands from history.
+
+**Source:** `src/execution/builtins.f90:3501-3767`
+
+## Synopsis
+
+```bash
+fc [-l [-nr]] [first [last]]
+fc -s [old=new] [command]
+fc [-e editor] [-nr] [first [last]]
+```
+
+## Description
+
+`fc` (fix command) lists history entries, opens past commands in an editor for modification, or re-executes a previous command with optional text substitution.
+
+## Options
+
+| Flag | Description |
+|------|-------------|
+| `-l` | List history entries (don't edit) |
+| `-n` | Suppress line numbers in list output |
+| `-r` | Reverse the order of listed entries |
+| `-e editor` | Use the specified editor |
+| `-s` | Re-execute with optional `old=new` substitution |
+
+## Range Arguments
+
+Both `first` and `last` accept:
+
+| Form | Meaning |
+|------|---------|
+| Positive integer | Absolute history number |
+| Negative integer | Offset from the end (e.g., `-3` = third from last) |
+| String | Prefix match — finds the most recent command starting with that string |
+
+## Modes
+
+### List Mode (`-l`)
+
+```bash
+fc -l          # Last 16 commands
+fc -l 10 20    # Commands 10 through 20
+fc -l -5       # Last 5 commands
+fc -ln         # List without line numbers
+fc -lr         # List in reverse order
+```
+
+### Edit Mode (default)
+
+Opens commands in an editor, then executes the edited result:
+
+```bash
+fc              # Edit last command
+fc -e nano      # Edit with nano
+fc 42 50        # Edit commands 42-50
+```
+
+Editor resolution: `-e` argument, then `$FCEDIT`, then `$EDITOR`, then `vi`.
+
+Lines starting with `#` or blank lines in the edited file are skipped.
+
+### Substitution Mode (`-s`)
+
+Re-execute a command with an optional replacement:
+
+```bash
+fc -s                    # Re-run the last command
+fc -s old=new            # Re-run last command, replacing "old" with "new"
+fc -s foo=bar command    # Re-run "command" with substitution
+```
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | Success |
+| 1 | Empty history, out-of-range index, substitution failed, or I/O error |
+
+## See Also
+
+- [history](/docs/builtins/history) - Display and manage command history
+- [History](/docs/interactive/history) - Interactive history features

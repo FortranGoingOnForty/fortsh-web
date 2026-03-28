@@ -1,0 +1,65 @@
+# ulimit
+
+Get or set resource limits.
+
+**Source:** `src/execution/builtins.f90:2941-3153`
+
+## Synopsis
+
+```bash
+ulimit [-SH] [-a] [-cdfglmnstuvw] [limit]
+```
+
+## Description
+
+Controls the resource limits available to the shell and its child processes. Without a value argument, displays the current limit. With a value, sets the limit.
+
+By default, operates on the soft limit. Use `-H` for hard limits.
+
+## Options
+
+| Flag | Resource | Units |
+|------|----------|-------|
+| `-a` | Show all limits | — |
+| `-H` | Operate on hard limit | — |
+| `-S` | Operate on soft limit (default) | — |
+| `-c` | Core file size | blocks |
+| `-d` | Data segment size | kbytes |
+| `-f` | File size (default) | blocks |
+| `-l` | Locked memory | kbytes |
+| `-m` | Resident set size | kbytes |
+| `-n` | Open file descriptors | count |
+| `-s` | Stack size | kbytes |
+| `-t` | CPU time | seconds |
+| `-u` | Max user processes | count |
+| `-v` | Virtual memory | kbytes |
+
+## Usage
+
+```bash
+# Show all limits
+ulimit -a
+
+# Show open file limit
+ulimit -n
+
+# Set open file limit to 4096
+ulimit -n 4096
+
+# Set unlimited core dump size
+ulimit -c unlimited
+
+# Show hard limit for stack
+ulimit -Hs
+```
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | Success |
+| 1 | Failed to get or set limit, or invalid value |
+
+## See Also
+
+- [umask](/docs/builtins/umask) - Set file creation mask

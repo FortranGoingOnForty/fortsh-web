@@ -1,0 +1,38 @@
+# popd
+
+Remove a directory from the stack and change to it.
+
+See [pushd / popd / dirs](/docs/builtins/pushd) for full documentation.
+
+**Source:** `src/scripting/directory_builtin.f90:145-236`
+
+## Synopsis
+
+```bash
+popd [-n] [+N | -N]
+```
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `-n` | Don't change directory, only remove from stack |
+| `+N` | Remove Nth entry from top (0-based) |
+| `-N` | Remove Nth entry from bottom (0-based) |
+
+## Description
+
+With no arguments, removes the top entry from the directory stack and changes to it. With `+N` or `-N`, removes the specified entry without changing directory (unless removing entry `+0`).
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | Success |
+| 1 | Stack empty, index out of range, directory change failed, or unknown option |
+
+## See Also
+
+- [pushd / popd / dirs](/docs/builtins/pushd) - Full directory stack documentation
+- [cd](/docs/builtins/cd) - Change directory
+- [prevd / nextd / dirh](/docs/builtins/prevd) - Directory history navigation

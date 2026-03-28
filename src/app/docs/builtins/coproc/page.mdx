@@ -1,0 +1,57 @@
+# coproc
+
+Start a coprocess with bidirectional pipes.
+
+**Source:** `src/execution/builtins.f90:1949-2000`, `src/execution/coprocess.f90`
+
+## Synopsis
+
+```bash
+coproc [NAME] command [args ...]
+```
+
+## Description
+
+Starts a command as a background coprocess with its stdin and stdout connected to the shell via pipes. This allows the shell to write to the coprocess's input and read from its output.
+
+If `NAME` is given, the pipe file descriptors are stored in the array `NAME[0]` (read fd) and `NAME[1]` (write fd). If omitted, the default name is `COPROC`.
+
+A valid name must start with an uppercase letter or `_` and contain only uppercase letters, digits, or `_`.
+
+## Usage
+
+```bash
+# Start a coprocess
+coproc cat
+
+# Write to it
+echo "hello" >&${COPROC[1]}
+
+# Read from it
+read line <&${COPROC[0]}
+echo "$line"
+# hello
+
+# Named coprocess
+coproc MYPROC sed 's/hello/world/'
+echo "hello" >&${MYPROC[1]}
+read result <&${MYPROC[0]}
+echo "$result"
+# world
+```
+
+## Limits
+
+Up to 10 concurrent coprocesses can be active at once.
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | Coprocess started successfully |
+| 1 | No command given, or all coprocess slots full, or pipe/fork failed |
+
+## See Also
+
+- [Pipes](/docs/syntax/pipes) - Pipeline syntax
+- [jobs](/docs/builtins/jobs) - List background jobs

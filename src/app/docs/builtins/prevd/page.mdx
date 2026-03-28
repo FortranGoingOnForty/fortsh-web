@@ -1,0 +1,106 @@
+# prevd / nextd / dirh
+
+Navigate through directory history (fish-style).
+
+**Source:** `src/execution/builtins.f90:4200-4283`
+
+## Synopsis
+
+```bash
+prevd
+nextd
+dirh
+```
+
+## Description
+
+These commands provide fish-style directory history navigation, separate from the `pushd`/`popd` directory stack. Every time you `cd` to a new directory, fortsh automatically records it in a history buffer (up to 50 entries). You can then move backward and forward through that history.
+
+This is similar to pressing Back and Forward in a web browser.
+
+## prevd
+
+Go to the previous directory in history.
+
+```bash
+cd /home
+cd /etc
+cd /var/log
+
+prevd
+# /etc
+
+prevd
+# /home
+```
+
+Returns `1` if already at the beginning of history.
+
+**Source:** `builtins.f90:4200-4227`
+
+## nextd
+
+Go to the next directory in history. Only works after using `prevd`.
+
+```bash
+cd /home
+cd /etc
+cd /var/log
+
+prevd
+# /etc
+
+nextd
+# /var/log
+```
+
+If you `cd` to a new directory while mid-history, all forward entries are discarded (like a web browser).
+
+Returns `1` if already at the end of history.
+
+**Source:** `builtins.f90:4229-4256`
+
+## dirh
+
+Display the entire directory history with index numbers. The current position is marked with `*`.
+
+```bash
+dirh
+#  1   /home/user
+#  2   /etc
+#  3 * /var/log
+```
+
+Prints "Directory history is empty" if no history exists yet.
+
+**Source:** `builtins.f90:4258-4283`
+
+## How It Works
+
+- Every `cd` adds both the old and new directories to the history
+- The history buffer holds up to 50 entries
+- When the buffer is full, the oldest entry is dropped
+- `prevd` and `nextd` move an internal index through the buffer
+- `cd`-ing to a new location while mid-history truncates all forward entries
+
+## Directory History vs Directory Stack
+
+| Feature | History (`prevd`/`nextd`) | Stack (`pushd`/`popd`) |
+|---------|--------------------------|------------------------|
+| Populated by | Every `cd` (automatic) | `pushd` only (manual) |
+| Navigation | `prevd`, `nextd` | `pushd +N` |
+| Display | `dirh` | `dirs` |
+| Max entries | 50 | Unlimited |
+| Model | Linear timeline | LIFO stack |
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | Success |
+| 1 | No previous/next directory, or directory change failed |
+
+## See Also
+
+- [cd](/docs/builtins/cd) - Change directory
+- [pushd / popd / dirs](/docs/builtins/pushd) - Directory stack management

@@ -1,0 +1,52 @@
+# printenv
+
+Print environment variables.
+
+**Source:** `src/execution/builtins.f90:3448-3499`
+
+## Synopsis
+
+```bash
+printenv [name ...]
+```
+
+## Description
+
+With no arguments, prints all environment variables in `KEY=VALUE` format. With one or more names, prints only the value of each named variable (one per line). Variables that are not set are silently skipped.
+
+## Usage
+
+```bash
+# Print all environment variables
+printenv
+
+# Print specific variables
+printenv HOME
+# /home/user
+
+printenv PATH SHELL
+# /usr/local/bin:/usr/bin:/bin
+# /usr/bin/fortsh
+```
+
+## Comparison with Other Commands
+
+| Command | Shows |
+|---------|-------|
+| `printenv` | All environment variables |
+| `printenv VAR` | Value only (no name) |
+| `echo $VAR` | Variable value (including non-exported) |
+| `export -p` | Exported variables with `declare -x` prefix |
+| `env` | All environment variables (external command) |
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | Always succeeds |
+
+## See Also
+
+- [export](/docs/builtins/export) - Export variables to the environment
+- [declare](/docs/builtins/declare) - Declare variables with attributes
+- [Variables](/docs/variables) - Variable overview

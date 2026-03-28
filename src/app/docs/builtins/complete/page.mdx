@@ -1,0 +1,125 @@
+# complete / compgen
+
+Programmable completion specification and generation.
+
+**Source:** `src/execution/builtins.f90:3808-4158`
+
+## Synopsis
+
+```bash
+complete [-r] [-p] [-W wordlist] [-F function] [-A action] [-o option] [-P prefix] [-S suffix] [-X pattern] command [...]
+compgen -W wordlist [prefix]
+```
+
+## Description
+
+`complete` registers, lists, or removes tab-completion rules for commands. `compgen` generates completions from a word list, useful for testing specs or in completion functions.
+
+## complete
+
+### Registering Completions
+
+```bash
+# Static word list
+complete -W "start stop restart status" myservice
+
+# Shell function
+complete -F _git_complete git
+
+# Built-in action
+complete -A directory cd
+
+# Combine options
+complete -A file -o filenames -P "--file=" mycommand
+```
+
+### Options
+
+| Flag | Argument | Description |
+|------|----------|-------------|
+| `-W` | `wordlist` | Space-separated list of completion words |
+| `-F` | `funcname` | Shell function to call for completions |
+| `-A` | `action` | Built-in completion action (see below) |
+| `-o` | `option` | Completion behavior option (see below) |
+| `-P` | `prefix` | String prepended to each completion |
+| `-S` | `suffix` | String appended to each completion |
+| `-X` | `pattern` | Filter pattern — matching completions are removed |
+| `-r` | — | Remove completion specs for the named commands |
+| `-p` | — | List all registered specs in reusable format |
+
+### Actions (`-A`)
+
+| Action | Completes with |
+|--------|---------------|
+| `alias` | Defined aliases |
+| `builtin` | Shell builtins |
+| `command` | Commands on PATH |
+| `directory` | Directories |
+| `file` | Files |
+| `function` | Shell functions |
+| `hostname` | Hostnames |
+| `keyword` | Shell keywords |
+| `variable` | Shell variables |
+| `user` | System users |
+| `group` | System groups |
+| `service` | System services |
+| `export` | Exported variables |
+
+### Options (`-o`)
+
+| Option | Effect |
+|--------|--------|
+| `default` | Fall back to default completion if no matches |
+| `dirnames` | Also complete directory names |
+| `filenames` | Treat completions as filenames (add trailing `/` for dirs) |
+| `nospace` | Don't add trailing space after completion |
+| `plusdirs` | Add directory completions to the results |
+| `nosort` | Don't sort completions alphabetically |
+
+### List and Remove
+
+```bash
+complete -p           # List all registered specs
+complete -r mycommand # Remove spec for mycommand
+complete -r           # Remove all specs
+```
+
+## compgen
+
+Generate completions from a word list, optionally filtered by a prefix:
+
+```bash
+compgen -W "start stop restart status" st
+# start
+# stop
+# status
+```
+
+Currently only the `-W` flag is supported for `compgen`.
+
+## Exit Status
+
+| Builtin | Status | Condition |
+|---------|--------|-----------|
+| `complete` | 0 | Success |
+| `complete` | 1 | Invalid action, invalid option, or missing arguments |
+| `compgen` | 0 | Matches found |
+| `compgen` | 1 | No matches |
+
+## Examples
+
+```bash
+# Complete hostnames for ssh
+complete -A hostname ssh
+
+# Custom completion function
+_myapp_complete() {
+    local cur="${COMP_WORDS[COMP_CWORD]}"
+    compgen -W "build test deploy" "$cur"
+}
+complete -F _myapp_complete myapp
+```
+
+## See Also
+
+- [Tab Completion](/docs/interactive/completion) - Interactive completion overview

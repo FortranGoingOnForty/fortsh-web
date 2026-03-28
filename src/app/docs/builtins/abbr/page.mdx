@@ -1,0 +1,66 @@
+# abbr
+
+Manage fish-style abbreviations.
+
+**Source:** `src/execution/builtins.f90:1591-1651`, `src/scripting/abbreviations.f90`
+
+## Synopsis
+
+```bash
+abbr
+abbr --show
+abbr short=expanded
+abbr --erase name
+```
+
+## Description
+
+Abbreviations are short strings that automatically expand to their full form when you press Space or Enter. They work like aliases but expand inline so you can see and edit the full command before running it.
+
+Up to 100 abbreviations can be defined.
+
+## Subcommands
+
+| Usage | Description |
+|-------|-------------|
+| `abbr` | List all abbreviations |
+| `abbr --show` / `abbr -s` | Same as above |
+| `abbr short=expanded` | Define or update an abbreviation |
+| `abbr --erase name` / `abbr -e name` | Remove an abbreviation |
+| `abbr name` | Show a single abbreviation |
+
+## Usage
+
+```bash
+# Define abbreviations
+abbr g=git
+abbr gs="git status"
+abbr gp="git push"
+
+# Now typing "g" + Space expands to "git"
+# Typing "gs" + Space expands to "git status"
+
+# List all
+abbr
+# g='git'
+# gs='git status'
+# gp='git push'
+
+# Remove one
+abbr --erase gs
+```
+
+## How Expansion Works
+
+When you type an abbreviation and press Space or Enter, fortsh replaces it with the expanded form on the command line. The expansion happens at the readline level before the command is parsed, so you can see and modify the expanded text before execution.
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | Success |
+| 1 | `--erase` with no name, or abbreviation not found on lookup |
+
+## See Also
+
+- [alias](/docs/builtins/alias) - Define command aliases

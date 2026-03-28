@@ -1,0 +1,79 @@
+# return
+
+Return from a function or sourced script.
+
+**Source:** `src/execution/builtins.f90:2510-2539`
+
+## Synopsis
+
+```bash
+return [n]
+```
+
+## Description
+
+Exits the current function or sourced script with exit status `n`. If `n` is omitted, the exit status is that of the last command executed.
+
+`return` is only valid inside a function or a sourced script. Outside these contexts, it sets `$?` to `2` with no other effect.
+
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `n` | Return status (integer). Optional — defaults to `$?` |
+
+## Context Requirements
+
+| Context | Behavior |
+|---------|----------|
+| Inside a function | Exits the function |
+| Inside a sourced script | Exits the sourced script |
+| Top-level (neither) | Sets `$?` to `2`, no other effect |
+
+## Examples
+
+```bash
+check_file() {
+    if [[ ! -f "$1" ]]; then
+        return 1
+    fi
+    return 0
+}
+
+if check_file "/etc/passwd"; then
+    echo "File exists"
+fi
+```
+
+### Returning Data
+
+`return` only provides a numeric status. To return data, use command substitution or a global variable:
+
+```bash
+# Command substitution
+get_hostname() {
+    hostname -s
+}
+result=$(get_hostname)
+
+# Global variable
+get_hostname() {
+    RESULT=$(hostname -s)
+}
+get_hostname
+echo "$RESULT"
+```
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| `n` | The provided return code |
+| `$?` | Last command's status, if no argument given |
+| 2 | Non-numeric argument, or called outside a function/source |
+
+## See Also
+
+- [Functions](/docs/control-flow/functions) - Defining and calling functions
+- [source](/docs/builtins/source) - Source a script
+- [exit](/docs/builtins/exit) - Exit the shell

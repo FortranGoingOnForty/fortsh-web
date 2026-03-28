@@ -1,0 +1,46 @@
+# help
+
+Display a reference of all fortsh builtins and keybindings.
+
+**Source:** `src/execution/builtins.f90:1653-1749`
+
+## Synopsis
+
+```bash
+help
+```
+
+## Description
+
+Prints a categorized list of every builtin command along with a brief description of each. Also lists interactive keybindings at the end.
+
+Unlike bash's `help`, fortsh's version does not accept a command name argument — it always displays the full reference. For detailed usage of a specific builtin, see the [builtins documentation](/docs/builtins).
+
+## Output
+
+The output is organized into these sections:
+
+| Section | Commands |
+|---------|----------|
+| Navigation & Directories | `cd`, `pwd`, `pushd`, `popd`, `dirs`, `prevd`/`nextd`, `dirh` |
+| Variables & Environment | `export`, `unset`, `readonly`, `declare`, `local`, `printenv`, `set`, `shopt` |
+| I/O & Formatting | `echo`, `printf`, `read` |
+| Job Control | `jobs`, `fg`, `bg`, `kill`, `wait`, `coproc` |
+| Shell Features | `source`/`.`, `eval`, `exec`, `command`, `type`/`which`, `hash`, `trap`, `history`, `fc`, `alias`/`unalias`, `abbr`, `config` |
+| Scripting & Control Flow | `test`/`[`/`[[`, `if`, `for`/`while`/`until`, `case`, `break`/`continue`, `return`, `shift`, `getopts`, `let`, `:` |
+| System | `umask`, `ulimit`, `times` |
+| Completion | `complete`, `compgen` |
+| Other | `perf`, `memory`, `help`, `exit` |
+
+After the command table, a list of interactive keybindings is shown (e.g., `Ctrl+R` for reverse search, `Tab` for completion).
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | Always succeeds |
+
+## See Also
+
+- [Builtins index](/docs/builtins) - Detailed documentation for each builtin
+- [Line Editing](/docs/interactive/line-editing) - Interactive keybindings in detail

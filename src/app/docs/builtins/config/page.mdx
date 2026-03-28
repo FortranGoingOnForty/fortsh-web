@@ -1,0 +1,56 @@
+# config
+
+Manage fortsh configuration files.
+
+**Source:** `src/execution/builtins.f90:1468-1491`, `src/scripting/config.f90`
+
+## Synopsis
+
+```bash
+config [show | create | reload]
+```
+
+## Description
+
+View, create, or reload the shell's configuration files (`~/.fortshrc`, `~/.fortsh_profile`, `~/.fortsh_logout`).
+
+## Subcommands
+
+| Subcommand | Description |
+|------------|-------------|
+| (none) | Show current configuration file contents |
+| `show` | Same as above |
+| `create` | Create default config files (skips any that already exist) |
+| `reload` | Re-read configuration files for the current shell type |
+
+## Usage
+
+```bash
+# View your current config
+config show
+
+# Create default config files
+config create
+# Created ~/.fortshrc
+# Created ~/.fortsh_profile
+# Created ~/.fortsh_logout
+
+# Reload after editing
+config reload
+```
+
+### Default Config
+
+`config create` generates a `~/.fortshrc` with a default prompt, common aliases, and shell option comments as a starting point.
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | Success |
+| 1 | Unknown subcommand |
+
+## See Also
+
+- [Configuration](/docs/getting-started/configuration) - Configuration guide
+- [source](/docs/builtins/source) - Source a script manually

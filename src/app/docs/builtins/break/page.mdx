@@ -1,0 +1,90 @@
+# break / continue
+
+Exit from or skip to the next iteration of a loop.
+
+**Source:** `src/execution/builtins.f90:2406-2508`
+
+## Synopsis
+
+```bash
+break [n]
+continue [n]
+```
+
+## Description
+
+`break` exits one or more enclosing `for`, `while`, or `until` loops. `continue` skips the rest of the current iteration and jumps to the next.
+
+Both accept an optional argument `n` specifying how many levels of nesting to break out of or continue from. The default is `1` (innermost loop only).
+
+## break
+
+Exit from a loop:
+
+```bash
+for i in 1 2 3 4 5; do
+    if [[ $i -eq 3 ]]; then
+        break
+    fi
+    echo "$i"
+done
+# Output: 1 2
+```
+
+### Multi-level break
+
+```bash
+for i in a b c; do
+    for j in 1 2 3; do
+        if [[ $j -eq 2 ]]; then
+            break 2    # Exit both loops
+        fi
+        echo "$i$j"
+    done
+done
+# Output: a1
+```
+
+## continue
+
+Skip to the next iteration:
+
+```bash
+for i in 1 2 3 4 5; do
+    if [[ $i -eq 3 ]]; then
+        continue
+    fi
+    echo "$i"
+done
+# Output: 1 2 4 5
+```
+
+### Multi-level continue
+
+```bash
+for i in a b c; do
+    for j in 1 2 3; do
+        if [[ $j -eq 2 ]]; then
+            continue 2    # Skip to next iteration of outer loop
+        fi
+        echo "$i$j"
+    done
+done
+# Output: a1 b1 c1
+```
+
+## Behavior Outside Loops
+
+When called outside a loop, both `break` and `continue` silently succeed with exit status `0` (POSIX-compatible behavior).
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | Success, or called outside a loop |
+| 1 | Non-integer argument or `n` less than 1 |
+
+## See Also
+
+- [Loops](/docs/control-flow/loops) - for, while, until loops
+- [return](/docs/builtins/return) - Return from a function

@@ -1,0 +1,46 @@
+# dirs
+
+Display or clear the directory stack.
+
+See [pushd / popd / dirs](/docs/builtins/pushd) for full documentation.
+
+**Source:** `src/scripting/directory_builtin.f90:238-281`
+
+## Synopsis
+
+```bash
+dirs [-clpv] [+N | -N]
+```
+
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `-c` | Clear the entire directory stack |
+| `-l` | Long format (don't abbreviate home with `~`) |
+| `-p` | One directory per line |
+| `-v` | One per line with index numbers |
+
+## Description
+
+Displays the directory stack. The current working directory is always shown as entry 0 at the top. With no options, prints all entries on one space-separated line.
+
+```bash
+dirs -v
+#  0  /usr/local
+#  1  /etc
+#  2  /var/log
+#  3  ~
+```
+
+## Exit Status
+
+| Status | Condition |
+|--------|-----------|
+| 0 | Success |
+| 1 | Unknown option |
+
+## See Also
+
+- [pushd / popd / dirs](/docs/builtins/pushd) - Full directory stack documentation
+- [prevd / nextd / dirh](/docs/builtins/prevd) - Directory history navigation
