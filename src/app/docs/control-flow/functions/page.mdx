@@ -322,3 +322,80 @@ lib_init
 # Use library...
 lib_cleanup
 ```
+
+## Special Functions
+
+### command_not_found_handle
+
+**Source:** `src/execution/executor.f90:738-791`
+
+When you type a command that doesn't exist on `PATH`, fortsh checks whether a function named `command_not_found_handle` is defined. If it is, fortsh calls it instead of printing the default error message.
+
+This matches bash's behavior and is useful for suggesting corrections, installing missing packages, or logging unknown commands.
+
+```bash
+command_not_found_handle() {
+    echo "fortsh: '$1': command not found" >&2
+    return 127
+}
+```
+
+#### Arguments
+
+The function receives the command name as `$1` and all original arguments as `$2`, `$3`, etc:
+
+```bash
+command_not_found_handle() {
+    local cmd="$1"
+    shift
+    echo "Unknown command: $cmd (args: $@)" >&2
+    return 127
+}
+
+# Typing: foobar -x hello
+# Output: Unknown command: foobar (args: -x hello)
+```
+
+#### When It Triggers
+
+The handler runs only when **all** of these are true:
+
+1. The command is not a builtin, alias, or function
+2. The command name contains no `/` (path-based commands like `./foo` skip the handler)
+3. The command is not found anywhere on `PATH`
+4. The `command` builtin is not active (i.e., `command missing_cmd` bypasses the handler)
+
+#### Practical Examples
+
+Suggest similar commands:
+
+```bash
+command_not_found_handle() {
+    echo "fortsh: $1: command not found" >&2
+
+    # Suggest packages on Fedora/RHEL
+    if type dnf &>/dev/null; then
+        echo "Try: sudo dnf install $1" >&2
+    fi
+
+    return 127
+}
+```
+
+Log unknown commands:
+
+```bash
+command_not_found_handle() {
+    echo "$(date): unknown command '$1'" >> ~/.fortsh_missing.log
+    echo "fortsh: $1: command not found" >&2
+    return 127
+}
+```
+
+#### Return Value
+
+The handler's exit status becomes `$?`. By convention, return `127` (the standard "command not found" code). If the handler returns non-zero, the `ERR` trap fires as usual.
+
+#### Default Behavior
+
+If no `command_not_found_handle` function is defined, fortsh prints a color-highlighted error with "Did you mean?" suggestions when running interactively.
