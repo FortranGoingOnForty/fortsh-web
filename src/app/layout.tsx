@@ -4,22 +4,24 @@ import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: new URL("https://fortsh.musicsian.com"),
   title: {
-    default: "fortsh - The Fortran Shell",
+    default: "fortsh - A Friendly, POSIX-Compliant Shell",
     template: "%s | fortsh",
   },
   description:
-    "A modern, POSIX-compliant shell written in Fortran 2018 with fish-like autosuggestions, syntax highlighting, and 60+ builtin commands.",
+    "fortsh is a friendly, POSIX-compliant shell written in Fortran with fish-like autosuggestions, syntax highlighting, and 60+ builtin commands. Works out of the box on Linux and macOS.",
   keywords: [
     "fortsh",
+    "friendly shell",
+    "posix compliant shell",
     "shell",
     "fortran",
-    "posix",
     "terminal",
     "command line",
     "bash alternative",
-    "fish shell",
+    "fish shell alternative",
     "syntax highlighting",
     "autosuggestions",
+    "interactive shell",
   ],
   authors: [{ name: "FortranGoingOnForty" }],
   creator: "FortranGoingOnForty",
@@ -36,9 +38,9 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "fortsh - The Fortran Shell",
+    title: "fortsh - A Friendly, POSIX-Compliant Shell",
     description:
-      "A modern, POSIX-compliant shell written in Fortran 2018 with fish-like features",
+      "A friendly, POSIX-compliant shell with fish-like autosuggestions and syntax highlighting. Written in Fortran, works out of the box.",
     url: "https://fortsh.musicsian.com",
     siteName: "fortsh",
     type: "website",
@@ -46,9 +48,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "fortsh - The Fortran Shell",
+    title: "fortsh - A Friendly, POSIX-Compliant Shell",
     description:
-      "A modern, POSIX-compliant shell written in Fortran 2018 with fish-like features",
+      "A friendly, POSIX-compliant shell with fish-like autosuggestions and syntax highlighting. Written in Fortran, works out of the box.",
   },
   alternates: {
     canonical: "https://fortsh.musicsian.com",
@@ -75,7 +77,7 @@ export default function RootLayout({
               "@type": "SoftwareApplication",
               name: "fortsh",
               description:
-                "A modern, POSIX-compliant shell written in Fortran 2018 with fish-like autosuggestions, syntax highlighting, and 60+ builtin commands.",
+                "A friendly, POSIX-compliant shell written in Fortran with fish-like autosuggestions, syntax highlighting, and 60+ builtin commands.",
               applicationCategory: "DeveloperApplication",
               operatingSystem: "Linux, macOS",
               url: "https://fortsh.musicsian.com",
