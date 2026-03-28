@@ -12,9 +12,9 @@ fortsh includes 58 builtin commands. Builtins are executed directly by the shell
 | [pushd](/docs/builtins/pushd) | Push directory onto stack | `directory_builtin.f90` |
 | [popd](/docs/builtins/popd) | Pop directory from stack | `directory_builtin.f90` |
 | [dirs](/docs/builtins/dirs) | Show directory stack | `directory_builtin.f90` |
-| prevd | Previous directory (fish-style) | `builtins.f90` |
-| nextd | Next directory (fish-style) | `builtins.f90` |
-| dirh | Directory history | `builtins.f90` |
+| [prevd](/docs/builtins/prevd) | Previous directory (fish-style) | `builtins.f90` |
+| [nextd](/docs/builtins/prevd) | Next directory (fish-style) | `builtins.f90` |
+| [dirh](/docs/builtins/prevd) | Directory history | `builtins.f90` |
 
 ### Variables & Environment
 | Command | Description | Source |
@@ -24,7 +24,7 @@ fortsh includes 58 builtin commands. Builtins are executed directly by the shell
 | [readonly](/docs/builtins/readonly) | Mark variables readonly | `builtins.f90:builtin_readonly` |
 | [declare](/docs/builtins/declare) | Declare variables | `builtins.f90:builtin_declare` |
 | [local](/docs/builtins/local) | Function-local variables | `builtins.f90:builtin_local` |
-| printenv | Print environment | `builtins.f90:builtin_printenv` |
+| [printenv](/docs/builtins/printenv) | Print environment | `builtins.f90:builtin_printenv` |
 | [shift](/docs/builtins/shift) | Shift positional params | `builtins.f90:builtin_shift` |
 
 ### I/O & Output
@@ -41,24 +41,24 @@ fortsh includes 58 builtin commands. Builtins are executed directly by the shell
 | [fg / bg](/docs/builtins/fg) | Foreground/background job | `builtins.f90:builtin_fg` |
 | [kill](/docs/builtins/kill) | Send signal | `builtins.f90:builtin_kill` |
 | [wait](/docs/builtins/wait) | Wait for jobs | `builtins.f90:builtin_wait` |
-| coproc | Coprocess | `builtins.f90:builtin_coproc` |
+| [coproc](/docs/builtins/coproc) | Coprocess | `builtins.f90:builtin_coproc` |
 
 ### Scripting & Control
 | Command | Description | Source |
 |---------|-------------|--------|
-| exit | Exit shell | `builtins.f90:builtin_exit` |
+| [exit](/docs/builtins/exit) | Exit shell | `builtins.f90:builtin_exit` |
 | [source / .](/docs/builtins/source) | Execute file | `builtins.f90:builtin_source` |
 | [eval](/docs/builtins/eval) | Evaluate string | `eval_builtin.f90` |
 | [exec](/docs/builtins/exec) | Replace shell | `builtins.f90:builtin_exec` |
-| return | Return from function | `builtins.f90:builtin_return` |
-| break | Break from loop | `builtins.f90:builtin_break` |
-| continue | Continue loop | `builtins.f90:builtin_continue` |
+| [return](/docs/builtins/return) | Return from function | `builtins.f90:builtin_return` |
+| [break](/docs/builtins/break) | Break from loop | `builtins.f90:builtin_break` |
+| [continue](/docs/builtins/break) | Continue loop | `builtins.f90:builtin_continue` |
 
 ### Command Identification
 | Command | Description | Source |
 |---------|-------------|--------|
 | [type](/docs/builtins/type) | Show command type | `command_builtin.f90` |
-| which | Find command | `command_builtin.f90` |
+| [which](/docs/builtins/which) | Find command | `command_builtin.f90` |
 | [command](/docs/builtins/command) | Execute bypassing functions | `command_builtin.f90` |
 | [hash](/docs/builtins/hash) | Command cache | `builtins.f90:builtin_hash` |
 
@@ -73,22 +73,22 @@ fortsh includes 58 builtin commands. Builtins are executed directly by the shell
 | Command | Description | Source |
 |---------|-------------|--------|
 | [alias / unalias](/docs/builtins/alias) | Define/remove alias | `builtins.f90:builtin_alias` |
-| abbr | Abbreviations (fish-style) | `builtins.f90:builtin_abbr` |
+| [abbr](/docs/builtins/abbr) | Abbreviations (fish-style) | `builtins.f90:builtin_abbr` |
 
 ### History & Completion
 | Command | Description | Source |
 |---------|-------------|--------|
 | [history](/docs/builtins/history) | Command history | `builtins.f90:builtin_history` |
-| fc | Edit history | `builtins.f90:builtin_fc` |
-| complete | Define completions | `builtins.f90:builtin_complete` |
-| compgen | Generate completions | `builtins.f90:builtin_compgen` |
+| [fc](/docs/builtins/fc) | Edit history | `builtins.f90:builtin_fc` |
+| [complete](/docs/builtins/complete) | Define completions | `builtins.f90:builtin_complete` |
+| [compgen](/docs/builtins/complete) | Generate completions | `builtins.f90:builtin_compgen` |
 
 ### Shell Options
 | Command | Description | Source |
 |---------|-------------|--------|
 | [set](/docs/builtins/set) | Set options | `shell_options.f90` |
 | [shopt](/docs/builtins/shopt) | Shell options | `shell_options.f90` |
-| config | Configuration | `builtins.f90:builtin_config` |
+| [config](/docs/builtins/config) | Configuration | `builtins.f90:builtin_config` |
 
 ### Signals
 | Command | Description | Source |
@@ -99,17 +99,17 @@ fortsh includes 58 builtin commands. Builtins are executed directly by the shell
 | Command | Description | Source |
 |---------|-------------|--------|
 | [umask](/docs/builtins/umask) | File creation mask | `builtins.f90:builtin_umask` |
-| ulimit | Resource limits | `builtins.f90:builtin_ulimit` |
-| times | Process times | `builtins.f90:builtin_times` |
+| [ulimit](/docs/builtins/ulimit) | Resource limits | `builtins.f90:builtin_ulimit` |
+| [times](/docs/builtins/times) | Process times | `builtins.f90:builtin_times` |
 | [let](/docs/builtins/let) | Arithmetic evaluation | `builtins.f90:builtin_let` |
-| perf | Performance metrics | `builtins.f90:builtin_perf` |
-| memory | Memory statistics | `builtins.f90:builtin_memory` |
+| [perf](/docs/builtins/perf) | Performance metrics | `builtins.f90:builtin_perf` |
+| [memory](/docs/builtins/memory) | Memory statistics | `builtins.f90:builtin_memory` |
 
 ### Special
 | Command | Description |
 |---------|-------------|
-| : | Null command (no-op) |
-| help | Display help |
+| [:](/docs/builtins/colon) | Null command (no-op) |
+| [help](/docs/builtins/help) | Display help |
 
 ---
 
