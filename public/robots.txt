@@ -1,0 +1,6 @@
+# Robots.txt for fortsh.musicsian.com
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://fortsh.musicsian.com/sitemap.xml

@@ -1,0 +1,91 @@
+import { MetadataRoute } from "next";
+
+export default function sitemap(): MetadataRoute.Sitemap {
+  const baseUrl = "https://fortsh.musicsian.com";
+
+  // Static pages
+  const staticPages = [
+    "",
+    "/features",
+    "/releases",
+  ];
+
+  // Documentation pages
+  const docPages = [
+    "/docs",
+    "/docs/getting-started",
+    "/docs/getting-started/installation",
+    "/docs/getting-started/first-steps",
+    "/docs/getting-started/configuration",
+    "/docs/syntax",
+    "/docs/syntax/quoting",
+    "/docs/syntax/redirection",
+    "/docs/syntax/pipes",
+    "/docs/syntax/expansion",
+    "/docs/syntax/heredocs",
+    "/docs/variables",
+    "/docs/variables/special",
+    "/docs/variables/arrays",
+    "/docs/variables/associative",
+    "/docs/variables/environment",
+    "/docs/control-flow",
+    "/docs/control-flow/conditionals",
+    "/docs/control-flow/loops",
+    "/docs/control-flow/functions",
+    "/docs/interactive",
+    "/docs/interactive/line-editing",
+    "/docs/interactive/history",
+    "/docs/interactive/completion",
+    "/docs/interactive/highlighting",
+    "/docs/interactive/autosuggestions",
+    "/docs/job-control",
+    "/docs/job-control/background",
+    "/docs/job-control/signals",
+    "/docs/platform",
+    "/docs/platform/linux",
+    "/docs/platform/macos-intel",
+    "/docs/platform/macos-arm",
+    "/docs/platform/limitations",
+    "/docs/builtins",
+    "/docs/builtins/cd",
+    "/docs/builtins/pwd",
+    "/docs/builtins/pushd",
+    "/docs/builtins/echo",
+    "/docs/builtins/printf",
+    "/docs/builtins/read",
+    "/docs/builtins/test",
+    "/docs/builtins/export",
+    "/docs/builtins/declare",
+    "/docs/builtins/local",
+    "/docs/builtins/readonly",
+    "/docs/builtins/unset",
+    "/docs/builtins/set",
+    "/docs/builtins/shopt",
+    "/docs/builtins/alias",
+    "/docs/builtins/source",
+    "/docs/builtins/eval",
+    "/docs/builtins/exec",
+    "/docs/builtins/command",
+    "/docs/builtins/type",
+    "/docs/builtins/hash",
+    "/docs/builtins/trap",
+    "/docs/builtins/kill",
+    "/docs/builtins/wait",
+    "/docs/builtins/jobs",
+    "/docs/builtins/fg",
+    "/docs/builtins/getopts",
+    "/docs/builtins/shift",
+    "/docs/builtins/umask",
+    "/docs/builtins/let",
+    "/docs/builtins/history",
+  ];
+
+  const allPages = [...staticPages, ...docPages];
+
+  return allPages.map((path) => ({
+    url: `${baseUrl}${path}`,
+    lastModified: new Date(),
+    changeFrequency: path === "" ? "weekly" : "monthly",
+    priority: path === "" ? 1 : path === "/docs" ? 0.9 : 0.7,
+  }));
+}
